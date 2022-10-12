@@ -15,7 +15,9 @@ jobs:
         with:
           python-version: 3.9
       - uses: actions/checkout@v2
-      - run: pip install pytest symfem numpy scipy pytest-xdist
+      - run: pip install pytest symfem numpy scipy pytest-xdist flake8
         name: Install requirements
+      - run: flake8 .
+        name: Flake8 checks
       - run: python3 -m pytest -n=auto test.py
         name: Run tests in test.py

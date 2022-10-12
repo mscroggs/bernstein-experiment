@@ -1,5 +1,4 @@
 import numpy as np
-import scipy.special
 import symfem
 import sympy
 import pytest
@@ -19,7 +18,7 @@ def test_integrals_triangle(px, py, n):
     b = symfem.elements.bernstein.bernstein_polynomials(n, 2)
 
     integrals1 = [float(
-        (i *  f(x, y)).integrate([x, 0, 1-y], [y, 0, 1])
+        (i * f(x, y)).integrate([x, 0, 1-y], [y, 0, 1])
     ) for i in b]
     integrals1 = [float(i) for i in integrals1]
 
@@ -43,9 +42,8 @@ def test_mass_matrix(px, py, n):
     b = symfem.elements.bernstein.bernstein_polynomials(n, 2)
 
     mass2 = [[float(
-        (i * j *  f(x, y)).integrate([x, 0, 1-y], [y, 0, 1])
+        (i * j * f(x, y)).integrate([x, 0, 1-y], [y, 0, 1])
     ) for i in b] for j in b]
-
 
     print(mass1)
     print(mass2)

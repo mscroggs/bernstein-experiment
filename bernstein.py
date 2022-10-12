@@ -97,7 +97,9 @@ def compute_mass_matrix_triangle(n, f=None, fdegree=0):
             j = 0
             for c in range(n + 1):
                 for d in range(n + 1 - c):
-                    mat[i, j] = multichoose([b + d, a + c], [b, a]) / choose(2 * n, n) * moments[b + d, a + c]
+                    mat[i, j] = multichoose([b + d, a + c], [b, a])
+                    mat[i, j] /= choose(2 * n, n)
+                    mat[i, j] *= moments[b + d, a + c]
                     j += 1
             i += 1
 
