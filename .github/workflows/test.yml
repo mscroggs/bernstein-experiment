@@ -15,7 +15,7 @@ jobs:
         with:
           python-version: 3.9
       - uses: actions/checkout@v2
-      - run: pip install pytest symfem
+      - run: pip install pytest symfem numpy scipy
         name: Install Pytest and Symfem
       - run: python3 -m pytest test.py
         name: Run tests in test.py
