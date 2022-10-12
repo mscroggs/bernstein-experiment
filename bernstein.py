@@ -3,7 +3,11 @@ import scipy.special
 import typing
 
 
-def compute_moments(n, f, fdegree):
+def compute_moments_triangle(n, f, fdegree):
+    if fdegree == 0:
+        return np.array(
+            [[f(0,0) / (n + 1) / (n + 2) for _ in range(n + 1)] for _ in range(n + 1)])
+
     rule1 = scipy.special.roots_jacobi((n + fdegree) // 2 + 1, 1, 0)
     rule2 = scipy.special.roots_jacobi((n + fdegree) // 2 + 1, 0, 0)
     rule1 = ((rule1[0] + 1) / 2, rule1[1] / 4)
@@ -37,10 +41,8 @@ def compute_moments(n, f, fdegree):
                 f2[alpha1, alpha2] += ww * f1[alpha1, i2]
                 ww *= r * (n - alpha1 - alpha2) / (1 + alpha2)
 
-    print(f0)
-    print(f1)
-    print(f2)
-
     return f2
 
 
+def compute_mass_matrix_triangle():
+    pass
