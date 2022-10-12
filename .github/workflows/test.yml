@@ -1,0 +1,22 @@
+name: 🧪
+
+on:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  run-tests:
+    name: Run tests
+    runs-on: ubuntu-latest
+    strategy:
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - uses: actions/checkout@v2
+      - run: pip install pytest symfem
+        name: Install Pytest and Symfem
+      - run: python3 -m pytest test.py
+        name: Run tests in test.py
