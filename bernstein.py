@@ -92,7 +92,7 @@ def compute_mass_matrix_triangle(n, f=None, fdegree=0):
     mat = np.zeros(((n + 1) * (n + 2) // 2, (n + 1) * (n + 2) // 2))
 
     # Pack index
-    def idx(i, j): (j*(2*n+3)-j*j)//2 + i
+    def idx(i, j): return (j*(2*n+3)-j*j)//2 + i
 
     for a in range(n + 1):
         for b in range(n + 1):
