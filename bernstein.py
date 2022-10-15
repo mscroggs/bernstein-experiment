@@ -1,22 +1,6 @@
 import numpy as np
 import scipy.special
-
-
-def choose(n, r):
-    """Return n choose r."""
-    out = 1
-    for i in range(min(r, n - r)):
-        out *= (n - i) / (i + 1)
-    return out
-
-
-def multichoose(ns, rs):
-    if sum(ns) == sum(rs) == 0:
-        return 2
-    out = 1
-    for n, r in zip(ns, rs):
-        out *= choose(n, r)
-    return out
+from scipy.special import comb
 
 
 def compute_moments_triangle(n, f, fdegree):
@@ -92,18 +76,17 @@ def compute_mass_matrix_triangle(n, f=None, fdegree=0):
     mat = np.zeros(((n + 1) * (n + 2) // 2, (n + 1) * (n + 2) // 2))
 
     # Pack index
-    def idx(i, j): return (j*(2*n+3)-j*j)//2 + i
+    def idx(i, j): return ((2 * n + 3) * j - j * j) // 2 + i
 
     for a in range(n + 1):
-        for b in range(n + 1):
-            for a2 in range(n + 1 - a):
+        for a2 in range(n + 1 - a):
+            i = idx(a, a2)
+            for b in range(n + 1):
                 for b2 in range(n + 1 - b):
-                    i = idx(a, a2)
                     j = idx(b, b2)
-                    mat[i, j] = choose(a + b, a) * choose(a2 + b2, a2) * \
-                        choose(2*n - a - b - a2 - b2, n - a - a2) \
+                    mat[i, j] = comb(a + b, a) * comb(a2 + b2, a2) \
+                        * comb(2 * n - a - b - a2 - b2, n - a - a2) \
                         * moments[a + b, a2 + b2]
 
-    mat /= choose(2*n, n)
-
+    mat /= comb(2 * n, n)
     return mat
