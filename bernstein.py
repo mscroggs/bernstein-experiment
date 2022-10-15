@@ -91,16 +91,18 @@ def compute_mass_matrix_triangle(n, f=None, fdegree=0):
 
     mat = np.zeros(((n + 1) * (n + 2) // 2, (n + 1) * (n + 2) // 2))
 
-    i = 0
+    # Pack index
+    idx = lambda i, j: (j*(2*n+3)-j*j)//2 + i
+
     for a in range(n + 1):
-        for b in range(n + 1 - a):
-            j = 0
-            for c in range(n + 1):
-                for d in range(n + 1 - c):
-                    mat[i, j] = multichoose([b + d, a + c], [b, a])
-                    mat[i, j] /= choose(2 * n, n)
-                    mat[i, j] *= moments[b + d, a + c]
-                    j += 1
-            i += 1
+        for b in range(n + 1):
+            for a2 in range(n + 1 - a):
+                for b2 in range(n + 1 - b):
+                    i = idx(a, a2)
+                    j = idx(b, b2)
+                    mat[i, j] = choose(a + b, a) * choose(a2 + b2, a2) * choose(2*n - a - b - a2 - b2, n - a - a2) \
+                        * moments[a + b, a2 + b2]
+
+    mat /= choose(2*n, n)
 
     return mat
