@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.special
-from scipy.special import comb
 
 
 # Pack index
@@ -49,7 +48,7 @@ def compute_moments_triangle(n, f, fdegree):
                 f1[alpha1, i2] += ww * f0[i1, i2]
             ww *= r * (n - alpha1) / (1 + alpha1)
 
-    f2 = np.zeros((n + 1)*(n + 2)//2)
+    f2 = np.zeros(((n + 1), (n + 1)))
     for i2, (p, w) in enumerate(zip(*rule2)):
         s = 1 - p
         r = p / s
@@ -58,7 +57,8 @@ def compute_moments_triangle(n, f, fdegree):
             ww = w * s0
             s0 *= s
             for alpha2 in range(alpha1 + 1):
-                f2[idx(n-alpha1, alpha2, n)] += ww * f1[n-alpha1, i2]
+                print('idx=', i2, n-alpha1, alpha2)
+                f2[n-alpha1, alpha2] += ww * f1[n-alpha1, i2]
                 ww *= r * (alpha1 - alpha2) / (1 + alpha2)
 
     return f2
@@ -83,24 +83,75 @@ def compute_mass_matrix_triangle(n, f=None, fdegree=0):
 
     mat = np.zeros(((n + 1) * (n + 2) // 2, (n + 1) * (n + 2) // 2))
 
-    cmat = np.ones((n+1, n+1))
-    for p in range(1, n+1):
-        for q in range(1, n+1):
-            cmat[p, q] = comb(p+q, p)
-
+    # Copy over correct moments
     for a in range(n + 1):
         for a2 in range(n + 1 - a):
-            i = idx(a, a2, n)
+            i = idx(a2, a, n)
             for b in range(n + 1):
                 for b2 in range(n + 1 - b):
-                    j = idx(b, b2, n)
-                    mat[i, j] = cmat[a, b] * cmat[a2, b2] \
-                        * cmat[n - a - a2, n - b - b2] \
-                        * moments[idx(a + b, a2 + b2, 2*n)]
+                    j = idx(b2, b, n)
+                    mat[i, j] = moments[a + b, a2 + b2]
 
-    mat /= cmat[n, n]
+    # First scaling (a outer)
+    r = np.ones(n+1, dtype=int)
+    w = np.empty(mat.shape[0], dtype=int)
+    for a in range(n + 1):
+        k = 0
+        for b in range(n + 1):
+            for b2 in range(n + 1 - b):
+                w[k] = r[b]
+                k += 1
+        for a2 in range(n + 1 - a):
+            i = idx(a2, a, n)
+            print('first = ', i, w)
+            mat[i, :] *= w
+        r = np.cumsum(r)
+
+    print(w[-1])
+
+    print()
+    # Second scaling (a2 outer)
+    r = np.ones(n+1, dtype=int)
+    for a2 in range(n + 1):
+        k = 0
+        for b in range(n + 1):
+            for b2 in range(n + 1 - b):
+                w[k] = r[b2]
+                k += 1
+        i = a2
+        ia = n + 1
+        for a in range(n + 1 - a2):
+            # i = ((2 * n + 3) * a - a * a) // 2 + a2
+            print('2nd row =', i, (2*n+3 - a)*a//2 + a2)
+            mat[i, :] *= w
+            i += ia
+            ia -= 1
+        r = np.cumsum(r)
+
+    print()
+    # Final scaling (a+a2 outer)
+    r = np.ones(n+1, dtype=int)
+    for asum in range(n, -1, -1):
+        k = 0
+        for b in range(n + 1):
+            for b2 in range(n - b + 1):
+                w[k] = r[n-b-b2]
+                k += 1
+        ww = 0
+        w2 = n + 1
+        for a2 in range(asum, -1, -1):
+            i = ww + a2
+            print('3rd row = ', i)
+            mat[i, :] *= w
+            ww += w2
+            w2 -= 1
+
+        r = np.cumsum(r)
+
+    mat /= w[0]
+
     return mat
 
 
 np.set_printoptions(linewidth=120)
-print(compute_mass_matrix_triangle(2, lambda x, y: 1.0, 4))
+print(compute_mass_matrix_triangle(3, lambda x, y: 1.0, 4))
