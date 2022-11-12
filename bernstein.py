@@ -3,6 +3,75 @@ import scipy.special
 from scipy.special import comb
 
 
+def compute_moments_tetrahedron(n, f, fdegree):
+    """Compute the Bernstein moments.
+
+    These are defined in equation (12) of https://doi.org/10.1137/11082539X
+    (Ainsworth, Andriamaro, Davydov, 2011).
+
+    Args:
+      n: The polynomial degree of the Bernstein polynomials.
+      f: The function to take moments with.
+      fdegree: The polynomial degree of the function f.
+
+    Returns:
+      A three-dimensional array containing the Bernstein moments.
+    """
+
+    jdegree = (n + fdegree) // 2 + 1
+    rule0 = scipy.special.roots_jacobi(jdegree, 2, 0)
+    rule1 = scipy.special.roots_jacobi(jdegree, 1, 0)
+    rule2 = scipy.special.roots_jacobi(jdegree, 0, 0)
+    rule0 = ((rule0[0] + 1) / 2, rule0[1] / 8)
+    rule1 = ((rule1[0] + 1) / 2, rule1[1] / 4)
+    rule2 = ((rule2[0] + 1) / 2, rule2[1] / 2)
+
+    q = len(rule1[0])
+    assert len(rule2) == len(rule1)
+    assert len(rule2) == len(rule0)
+
+    f0 = np.empty((q, q, q))
+    for i, x in enumerate(rule0[0]):
+        for j, y in enumerate(rule1[0]):
+            for k, z in enumerate(rule2[0]):
+                f0[i, j, k] = f(x, y*(1 - x), z*(1 - y)*(1 - x))
+
+    f1 = np.zeros((n+1, q, q))
+    for i0, (p, w) in enumerate(zip(*rule0)):
+        s = 1 - p
+        r = p / s
+        ww = w * s ** n
+        for alpha1 in range(n + 1):
+            for i1 in range(q):
+                for i2 in range(q):
+                    f1[alpha1, i1, i2] += ww * f0[i0, i1, i2]
+            ww *= r * (n - alpha1) / (1 + alpha1)
+
+    f2 = np.zeros((n + 1, n + 1, q))
+    for i1, (p, w) in enumerate(zip(*rule1)):
+        s = 1 - p
+        r = p / s
+        for alpha1 in range(n + 1):
+            ww = w * s ** (n - alpha1)
+            for alpha2 in range(n + 1 - alpha1):
+                for i2 in range(q):
+                    f2[alpha1, alpha2, i2] += ww * f1[alpha1, i1, i2]
+                ww *= r * (n - alpha1 - alpha2) / (1 + alpha2)
+
+    f3 = np.zeros((n + 1, n + 1, n + 1))
+    for i2, (p, w) in enumerate(zip(*rule2)):
+        s = 1 - p
+        r = p / s
+        for alpha1 in range(n + 1):
+            for alpha2 in range(n + 1 - alpha1):
+                ww = w * s ** (n - alpha1 - alpha2)
+                for alpha3 in range(n + 1 - alpha1 - alpha2):
+                    f3[alpha1, alpha2, alpha3] += ww * f2[alpha1, alpha2, i2]
+                    ww *= r * (n - alpha1 - alpha2 - alpha3) / (1 + alpha3)
+
+    return f3
+
+
 def compute_moments_triangle(n, f, fdegree):
     """Compute the Bernstein moments.
 
