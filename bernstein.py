@@ -125,6 +125,52 @@ def compute_moments_triangle(n, f, fdegree):
     return f2
 
 
+def compute_mass_matrix_tetrahedron(n, f=None, fdegree=0):
+    """
+    Compute the mass matrix with a weight function.
+
+    These method is described in section 4.1 of https://doi.org/10.1137/11082539X
+    (Ainsworth, Andriamaro, Davydov, 2011).
+
+    Args:
+      n: The polynomial degree of the Bernstein polynomials.
+      f: The function to take moments with. This is the function c from the paper.
+      fdegree: The polynomial degree of the function f.
+
+    Returns:
+      A mass matrix.
+    """
+    moments = compute_moments_tetrahedron(2 * n, f, fdegree)
+
+    nd = (n + 1)*(n + 2)*(n + 3) // 6
+    mat = np.zeros((nd, nd))
+
+    # Pack index
+    idx = {}
+    c = 0
+    for i in range(n + 1):
+        for j in range(n + 1 - i):
+            for k in range(n + 1 - i - j):
+                idx[(k, j, i)] = c
+                c += 1
+
+    for a in range(n + 1):
+        for a2 in range(n + 1 - a):
+            for a3 in range(n + 1 - a - a2):
+                i = idx[(a, a2, a3)]
+                for b in range(n + 1):
+                    for b2 in range(n + 1 - b):
+                        for b3 in range(n + 1 - b - b2):
+                            j = idx[(b, b2, b3)]
+                            mat[i, j] = comb(a + b, a) * comb(a2 + b2, a2) \
+                                * comb(a3 + b3, a3)\
+                                * comb(2 * n - a - b - a2 - b2 - a3 - b3, n - a - a2 - a3) \
+                                * moments[a + b, a2 + b2, a3 + b3]
+
+    mat /= comb(2 * n, n)
+    return mat
+
+
 def compute_mass_matrix_triangle(n, f=None, fdegree=0):
     """
     Compute the mass matrix with a weight function.

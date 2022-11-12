@@ -75,3 +75,23 @@ def test_mass_matrix_triangle(px, py, n):
     print(mass2)
 
     assert np.allclose(mass1, mass2)
+
+
+@pytest.mark.parametrize("px", range(2))
+@pytest.mark.parametrize("py", range(3))
+@pytest.mark.parametrize("pz", range(2))
+@pytest.mark.parametrize("n", range(1, 3))
+def test_mass_matrix_tetrahedron(px, py, pz, n):
+
+    def f(x, y, z):
+        return x ** px * y ** py * z ** pz
+
+    mass1 = bernstein.compute_mass_matrix_tetrahedron(n, f, px + py + pz)
+
+    b = symfem.elements.bernstein.bernstein_polynomials(n, 3)
+
+    mass2 = np.array([[float(
+        (bi * bj * f(x, y, z)).integrate([x, 0, 1 - y - z], [y, 0, 1 - z], [z, 0, 1])
+    ) for bi in b] for bj in b])
+
+    assert np.allclose(mass1, mass2)
