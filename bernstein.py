@@ -3,6 +3,41 @@ import scipy.special
 from scipy.special import comb
 
 
+def evaluate_triangle(c0, q):
+
+    assert c0.shape[0] == c0.shape[1]
+    n = c0.shape[0] - 1
+    rule0 = scipy.special.roots_jacobi(q, 0, 0)
+    rule1 = scipy.special.roots_jacobi(q, 1, 0)
+    rule0 = ((rule0[0] + 1) / 2, rule0[1] / 4)
+    rule1 = ((rule1[0] + 1) / 2, rule1[1] / 2)
+
+    # d = 2
+    # c1 = evalstep(c0, l=2, q)
+    c1 = np.zeros((n+1, q))
+    for i2, p in enumerate(rule0[0]):
+        s = 1 - p
+        r = p / s
+        for alpha1 in range(n + 1):
+            w = s**(n - alpha1)
+            for alpha2 in range(n + 1 - alpha1):
+                c1[alpha1, i2] += w * c0[alpha1, alpha2]
+                w *= r * (n - alpha1 - alpha2) / (1 + alpha2)
+
+    # c2 = evalstep(c1, l=1, q)
+    c2 = np.zeros((q, q))
+    for i1, p in enumerate(rule1[0]):
+        s = 1 - p
+        r = p / s
+        w = s**n
+        for alpha1 in range(n + 1):
+            for i2 in range(q):
+                c2[i1, i2] += w * c1[alpha1, i2]
+            w *= r * (n - alpha1) / (1 + alpha1)
+
+    return c2
+
+
 def compute_moments_triangle(n, f, fdegree):
     """Compute the Bernstein moments.
 
@@ -17,20 +52,16 @@ def compute_moments_triangle(n, f, fdegree):
     Returns:
       A two-dimensional array containing the Bernstein moments.
     """
-    if fdegree == 0:
-        return np.array(
-            [[f(0, 0) / (n + 1) / (n + 2) for _ in range(n + 1)] for _ in range(n + 1)])
 
-    rule1 = scipy.special.roots_jacobi((n + fdegree) // 2 + 1, 1, 0)
-    rule2 = scipy.special.roots_jacobi((n + fdegree) // 2 + 1, 0, 0)
+    q = (fdegree + n)//2 + 1
+    rule0 = scipy.special.roots_jacobi(q, 0, 0)
+    rule1 = scipy.special.roots_jacobi(q, 1, 0)
+    rule0 = ((rule0[0] + 1) / 2, rule0[1] / 2)
     rule1 = ((rule1[0] + 1) / 2, rule1[1] / 4)
-    rule2 = ((rule2[0] + 1) / 2, rule2[1] / 2)
-
-    q = len(rule1[0])
-    assert len(rule2) == len(rule1)
+    assert len(rule0[0] == q)
 
     f0 = np.array([
-        [f(p1, p2 * (1 - p1)) for p2 in rule2[0]]
+        [f(p1, p2 * (1 - p1)) for p2 in rule0[0]]
         for p1 in rule1[0]])
 
     f1 = np.zeros((n+1, q))
@@ -44,7 +75,7 @@ def compute_moments_triangle(n, f, fdegree):
             ww *= r * (n - alpha1) / (1 + alpha1)
 
     f2 = np.zeros((n + 1, n + 1))
-    for i2, (p, w) in enumerate(zip(*rule2)):
+    for i2, (p, w) in enumerate(zip(*rule0)):
         s = 1 - p
         r = p / s
         for alpha1 in range(n + 1):
