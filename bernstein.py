@@ -121,3 +121,7 @@ def compute_mass_matrix_triangle(n, f=None, fdegree=0):
 
     mat /= comb(2 * n, n)
     return mat
+
+c0 = np.ones((6, 6))
+print(c0)
+print(evaluate_triangle(c0, 6))
