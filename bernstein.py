@@ -2,7 +2,6 @@ import numpy as np
 import scipy.special
 from scipy.special import comb
 
-
 # Pack index
 def idx(i, j, n): return ((2 * n + 3) * j - j * j) // 2 + i
 
@@ -83,22 +82,17 @@ def compute_mass_matrix_triangle(n, f=None, fdegree=0):
 
     mat = np.zeros(((n + 1) * (n + 2) // 2, (n + 1) * (n + 2) // 2))
 
-    cmat = np.ones((n+1, n+1))
-    for p in range(1, n+1):
-        for q in range(1, n+1):
-            cmat[p, q] = comb(p+q, p)
-
     for a in range(n + 1):
         for a2 in range(n + 1 - a):
-            i = idx(a, a2, n)
+            i = idx(a, a2)
             for b in range(n + 1):
                 for b2 in range(n + 1 - b):
-                    j = idx(b, b2, n)
-                    mat[i, j] = cmat[a, b] * cmat[a2, b2] \
-                        * cmat[n - a - a2, n - b - b2] \
-                        * moments[idx(a + b, a2 + b2, 2*n)]
+                    j = idx(b, b2)
+                    mat[i, j] = comb(a + b, a) * comb(a2 + b2, a2) \
+                        * comb(2 * n - a - b - a2 - b2, n - a - a2) \
+                        * moments[a + b, a2 + b2]
 
-    mat /= cmat[n, n]
+    mat /= comb(2 * n, n)
     return mat
 
 

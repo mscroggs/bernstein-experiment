@@ -1,10 +1,8 @@
 
 import scipy.special
 from scipy.special import comb
-
-
-# Pack index
-def idx(i, j, n): return ((2 * n + 3) * j - j * j) // 2 + i
+import numpy as np
+from cffi import FFI
 
 
 def compute_mass_matrix_triangle(n, fdegree):
@@ -14,12 +12,13 @@ def compute_mass_matrix_triangle(n, fdegree):
     rule1 = ((rule1[0] + 1) / 2, rule1[1] / 4)
     rule2 = ((rule2[0] + 1) / 2, rule2[1] / 2)
     q = len(rule1[0])
+    nd = (n + 1) * (n + 2) // 2
 
     cmat = [str(int(comb(p+q, p))) for p in range(n+1) for q in range(n+1)]
 
     ccode = f"""
 
-#define np {(n+1)*(n+2)//2}
+#define nd {nd}
 #define nq {q}
 
 void tabulate_bernstein_mass_tri(double *f0, double *A)
@@ -68,7 +67,7 @@ void tabulate_bernstein_mass_tri(double *f0, double *A)
   }}
 
   // double A[{(n + 1) * (n + 2) // 2}][{(n + 1) * (n + 2) // 2}] = {{0}};
-  short int cmat[{n+1}][{n+1}] = {{{', '.join(cmat)}}};
+  double cmat[{n+1}][{n+1}] = {{{', '.join(cmat)}}};
 
   for (int a = 0; a < {n+1}; ++a)
   {{
@@ -98,8 +97,19 @@ void tabulate_bernstein_mass_tri(double *f0, double *A)
 
 """
 
-    return ccode
+    return (nd, q, ccode)
 
+def cffi_mass_tri(n, fdegree):
+    nd, q, code = compute_mass_matrix_triangle(n, fdegree)
+    ffi = FFI()
+    ffi.set_source("_cffi_bernstein", code)
+    ffi.cdef("void tabulate_bernstein_mass_tri(double *f0, double *A);");
+    ffi.compile(verbose=True)
+    from _cffi_bernstein import ffi, lib
+    f0 = np.ones((q, q), dtype=np.float64)
+    A = np.empty((nd, nd), dtype=np.float64)
+    lib.tabulate_bernstein_mass_tri(ffi.cast("double *", f0.ctypes.data),
+                                    ffi.cast("double *", A.ctypes.data))
+    return(A)
 
-with open("b.c", "w") as fd:
-    fd.write(compute_mass_matrix_triangle(2, 1))
+print(cffi_mass_tri(5, 4))
