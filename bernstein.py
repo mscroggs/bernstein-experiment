@@ -9,8 +9,9 @@ def evaluate_triangle(c0, q):
     n = c0.shape[0] - 1
     rule0 = scipy.special.roots_jacobi(q, 0, 0)
     rule1 = scipy.special.roots_jacobi(q, 1, 0)
-    rule0 = ((rule0[0] + 1) / 2, rule0[1] / 4)
-    rule1 = ((rule1[0] + 1) / 2, rule1[1] / 2)
+    rule0 = ((rule0[0] + 1) / 2, rule0[1] / 2)
+    rule1 = ((rule1[0] + 1) / 2, rule1[1] / 4)
+    rule2 = ((rule2[0] + 1) / 2, rule2[1] / 8)
 
     # d = 2
     # c1 = evalstep(c0, l=2, q)
@@ -33,6 +34,56 @@ def evaluate_triangle(c0, q):
         for alpha1 in range(n + 1):
             for i2 in range(q):
                 c2[i1, i2] += w * c1[alpha1, i2]
+            w *= r * (n - alpha1) / (1 + alpha1)
+
+    return c2
+
+
+def evaluate_tetrahedron(c0, q):
+
+    assert c0.shape[0] == c0.shape[1]
+    assert c0.shape[0] == c0.shape[2]
+    n = c0.shape[0] - 1
+    rule0 = scipy.special.roots_jacobi(q, 0, 0)
+    rule1 = scipy.special.roots_jacobi(q, 1, 0)
+    rule2 = scipy.special.roots_jacobi(q, 2, 0)
+    rule0 = ((rule0[0] + 1) / 2, rule0[1] / 2)
+    rule1 = ((rule1[0] + 1) / 2, rule1[1] / 4)
+    rule2 = ((rule2[0] + 1) / 2, rule2[1] / 8)
+
+    # d = 3
+    # c1 = evalstep(c0, l=3, q)
+    c1 = np.zeros((n + 1, n + 1, q))
+    for i3, p in enumerate(rule0[0]):
+        s = 1 - p
+        r = p / s
+        for alpha1 in range(n + 1):
+            w = s**(n - alpha1)
+            for alpha2 in range(n + 1 - alpha1):
+                for alpha3 in range(n + 1 - alpha1 - alpha2):
+                    c1[alpha1, alpha2, i3] += w * c0[alpha1, alpha2, alpha3]
+                    w *= r * (n - alpha1 - alpha2 - alpha3) / (1 + alpha3)
+
+    # c2 = evalstep(c1, l=2, q)
+    c2 = np.zeros((n + 1, q, q))
+    for i2, p in enumerate(rule1[0]):
+        s = 1 - p
+        r = p / s
+        for alpha1 in range(n + 1):
+            w = s**(n - alpha1)
+            for alpha2 in range(n + 1 - alpha1):
+                c2[alpha1, i1, i2] += w * c0[alpha1, alpha2, i2]
+                w *= r * (n - alpha1 - alpha2) / (1 + alpha2)
+
+    # c3 = evalstep(c2, l=1, q)
+    c3 = np.zeros((q, q, q))
+    for i1, p in enumerate(rule2[0]):
+        s = 1 - p
+        r = p / s
+        w = s**n
+        for alpha1 in range(n + 1):
+            for i2 in range(q):
+                c2[i1, i2, i3] += w * c1[alpha1, i2, i3]
             w *= r * (n - alpha1) / (1 + alpha1)
 
     return c2
@@ -121,6 +172,7 @@ def compute_mass_matrix_triangle(n, f=None, fdegree=0):
 
     mat /= comb(2 * n, n)
     return mat
+
 
 c0 = np.ones((6, 6))
 print(c0)

@@ -1,16 +1,14 @@
-
 import scipy.special
-from scipy.special import comb
 import numpy as np
 from cffi import FFI
 
 
 def eval_triangle(n, q):
 
-    rule1 = scipy.special.roots_jacobi(q, 1, 0)
     rule0 = scipy.special.roots_jacobi(q, 0, 0)
-    rule1 = ((rule1[0] + 1) / 2, rule1[1] / 4)
+    rule1 = scipy.special.roots_jacobi(q, 1, 0)
     rule0 = ((rule0[0] + 1) / 2, rule0[1] / 2)
+    rule1 = ((rule1[0] + 1) / 2, rule1[1] / 4)
 
     ccode = f"""
 
@@ -88,7 +86,7 @@ void moment_tri(double *f0, double *f2)
         }}
     }}
 
-    // double f2[{n+1}][{n+1}] = {{}};
+    // double f2[{(n+2)*(n+1)//2}] = {{}};
     for (int i2 = 0; i2 < {q}; ++i2)
     {{
       double s = 1 - rule0p[i2];
@@ -113,13 +111,14 @@ void moment_tri(double *f0, double *f2)
 
     return ccode
 
+
 def cffi_eval_tri(n, q):
     code = eval_triangle(n, q)
     print(code)
     ffi = FFI()
     ffi.set_source("_cffi_bernstein", code)
-    ffi.cdef("void evaluate_tri(double *c0, double *c2);");
-    ffi.cdef("void moment_tri(double *f0, double *f2);");
+    ffi.cdef("void evaluate_tri(double *c0, double *c2);")
+    ffi.cdef("void moment_tri(double *f0, double *f2);")
     ffi.compile(verbose=False)
     from _cffi_bernstein import ffi, lib
 
@@ -139,4 +138,5 @@ def cffi_eval_tri(n, q):
                    ffi.cast("double *", f2.ctypes.data))
     print('B[f2] = ', f2, sum(f2))
 
-cffi_eval_tri(5, 5)
+
+cffi_eval_tri(12, 12)
