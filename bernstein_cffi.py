@@ -293,7 +293,7 @@ def cffi_eval_tri(n, q):
                    ffi.cast("double *", f2.ctypes.data))
     print('B[f2] = ', f2, sum(f2))
 
-    
+
 def cffi_eval_tet(n, q):
     code = codegen_tet(n, q)
     print(code)
@@ -320,6 +320,5 @@ def cffi_eval_tet(n, q):
                    ffi.cast("double *", f3.ctypes.data))
     print('B[f3] = ', f3, sum(f3))
 
-    
 
 cffi_eval_tet(5, 5)

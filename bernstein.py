@@ -14,7 +14,45 @@ def evaluate_triangle(c0, q):
 
     # d = 2
     # c1 = evalstep(c0, l=2, q)
-    c1 = np.zeros((n+1, q))
+    c1 = np.zeros((n + 1, q))
+    for i2, p in enumerate(rule0[0]):
+        s = 1 - p
+        r = p / s
+        for alpha1 in range(n + 1):
+            w = s**(n - alpha1)
+            for alpha2 in range(n + 1 - alpha1):
+                c1[alpha1, i2] += w * c0[alpha1, alpha2]
+                w *= r * (n - alpha1 - alpha2) / (1 + alpha2)
+
+    # c2 = evalstep(c1, l=1, q)
+    c2 = np.zeros((q, q))
+    for i1, p in enumerate(rule1[0]):
+        s = 1 - p
+        r = p / s
+        w = s**n
+        for alpha1 in range(n + 1):
+            for i2 in range(q):
+                c2[i1, i2] += w * c1[alpha1, i2]
+            w *= r * (n - alpha1) / (1 + alpha1)
+
+    return c2
+
+
+def evaluate_gradx_triangle(c0, q):
+
+    c0 = c0[1:, :-1]
+    print('new = \n', c0)
+    assert c0.shape[0] == c0.shape[1]
+    n = c0.shape[0] - 1
+    c0 *= n
+    rule0 = scipy.special.roots_jacobi(q, 0, 0)
+    rule1 = scipy.special.roots_jacobi(q, 1, 0)
+    rule0 = ((rule0[0] + 1) / 2, rule0[1] / 2)
+    rule1 = ((rule1[0] + 1) / 2, rule1[1] / 4)
+
+    # d = 2
+    # c1 = evalstep(c0, l=2, q)
+    c1 = np.zeros((n + 1, q))
     for i2, p in enumerate(rule0[0]):
         s = 1 - p
         r = p / s
@@ -288,13 +326,3 @@ def compute_mass_matrix_triangle(n, f=None, fdegree=0):
 
     mat /= comb(2 * n, n)
     return mat
-
-
-# n = 5
-# c0 = np.zeros((n, n, n))
-# for i in range(n):
-#     for j in range(n - i):
-#         for k in range(n - i - j):
-#             c0[i, j, k] = 1.0
-# print(c0)
-# print(evaluate_tetrahedron(c0, 4))

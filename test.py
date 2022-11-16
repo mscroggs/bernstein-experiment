@@ -2,10 +2,34 @@ import numpy as np
 import symfem
 import sympy
 import pytest
+import scipy
 
 import bernstein
 
 x, y, z = sympy.symbols("x y z")
+
+
+def test_evaluation_triangle():
+    n = 8
+    rule0 = scipy.special.roots_jacobi(n, 0, 0)
+    rule1 = scipy.special.roots_jacobi(n, 1, 0)
+    rule0 = ((rule0[0] + 1) / 2, rule0[1] / 2)
+    rule1 = ((rule1[0] + 1) / 2, rule1[1] / 4)
+    pts = np.array([(x, y*(1 - x)) for x in rule1[0] for y in rule0[0]])
+
+    b = symfem.elements.bernstein.bernstein_polynomials(n - 1, 2)
+
+    j = 0
+    for a0 in range(n):
+        for a1 in range(n - a0):
+            c0 = np.zeros((n, n))
+            c0[a1, a0] = 1.0
+            print(a0, a1, j)
+            z0 = bernstein.evaluate_triangle(c0, n).flatten()
+            z1 = np.array([float(b[j].subs({x: p[0], y: p[1]})) for p in pts])
+            j += 1
+
+            assert np.allclose(z0, z1)
 
 
 @pytest.mark.parametrize("px", range(4))
@@ -17,9 +41,8 @@ def test_integrals_triangle(px, py, n):
 
     b = symfem.elements.bernstein.bernstein_polynomials(n, 2)
 
-    integrals1 = [float(
-        (i * f(x, y)).integrate([x, 0, 1-y], [y, 0, 1])
-    ) for i in b]
+    integrals1 = [float((bi * f(x, y)).integrate([x, 0, 1-y], [y, 0, 1]))
+                  for bi in b]
     integrals1 = [float(i) for i in integrals1]
 
     integrals2 = bernstein.compute_moments_triangle(n, f, px + py)
