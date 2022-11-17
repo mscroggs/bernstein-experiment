@@ -18,6 +18,8 @@ def test_evaluation_triangle():
     pts = np.array([(x, y*(1 - x)) for x in rule1[0] for y in rule0[0]])
 
     b = symfem.elements.bernstein.bernstein_polynomials(n - 1, 2)
+    bx = [sympy.diff(bi, x) for bi in b]
+    by = [sympy.diff(bi, y) for bi in b]
 
     j = 0
     for a0 in range(n):
@@ -26,10 +28,16 @@ def test_evaluation_triangle():
             c0[a1, a0] = 1.0
             print(a0, a1, j)
             z0 = bernstein.evaluate_triangle(c0, n).flatten()
+            z0x = bernstein.evaluate_grad_triangle(c0, n, 'x').flatten()
+            z0y = bernstein.evaluate_grad_triangle(c0, n, 'y').flatten()
             z1 = np.array([float(b[j].subs({x: p[0], y: p[1]})) for p in pts])
+            z1x = np.array([float(bx[j].subs({x: p[0], y: p[1]})) for p in pts])
+            z1y = np.array([float(by[j].subs({x: p[0], y: p[1]})) for p in pts])
             j += 1
 
             assert np.allclose(z0, z1)
+            assert np.allclose(z0x, z1x)
+            assert np.allclose(z0y, z1y)
 
 
 @pytest.mark.parametrize("px", range(4))

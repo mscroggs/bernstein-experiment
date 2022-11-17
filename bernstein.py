@@ -74,7 +74,7 @@ def evaluate_grad_triangle(c0, q, direction='x'):
                 c2[i1, i2] += w * c1[alpha1, i2]
             w *= r * (n - alpha1) / (1 + alpha1)
 
-    return c2
+    return (n + 1)*c2
 
 
 def evaluate_tetrahedron(c0, q):

@@ -24,19 +24,19 @@ void evaluate_tri(double *c0, double *c2)
   {{
     double s = 1.0 - rule0p[i2];
     double r = rule0p[i2] / s;
-    double ww = 1.0;
     int c = 0;
-    for (int alpha1m = 0; alpha1m < {n + 1}; ++alpha1m)
+    for (int alpha1 = 0; alpha1 < {n + 1}; ++alpha1)
     {{
-      double w = ww;
+      double w = 1.0;
+      for (int j = 0; j < {n} - alpha1; ++j)
+        w *= s;
       double c1v = 0.0;
-      for (int alpha2 = 0; alpha2 < alpha1m + 1; ++alpha2)
+      for (int alpha2 = 0; alpha2 < {n + 1} - alpha1; ++alpha2)
       {{
         c1v += w * c0[c++];
-        w *= r * (alpha1m - alpha2)/(1.0 + alpha2);
+        w *= r * ({n} - alpha1 - alpha2)/(1.0 + alpha2);
       }}
-      c1[{n} - alpha1m][i2] = c1v;
-      ww *= s;
+      c1[alpha1][i2] = c1v;
     }}
   }}
 
@@ -72,21 +72,73 @@ void evaluate_gradx_tri(double *c0, double *c2)
   {{
     double s = 1.0 - rule0p[i2];
     double r = rule0p[i2] / s;
-    double ww = 1.0;
     int c = 0;
-    for (int alpha1m = 0; alpha1m < {n}; ++alpha1m)
+    int dc = 1;
+    for (int alpha1 = 0; alpha1 < {n}; ++alpha1)
     {{
-      double w = ww;
+      double w = 1.0;
+      for (int j = 0; j < {n-1} - alpha1; ++j)
+        w *= s;
       double c1v = 0.0;
-      for (int alpha2 = 0; alpha2 < alpha1m + 1; ++alpha2)
+      for (int alpha2 = 0; alpha2 < {n} - alpha1; ++alpha2)
       {{
-        c1v += w * (c0[c+1] - c0[c]);
+        c1v += w * (c0[c+dc] - c0[c]);
         ++c;
-        w *= r * (alpha1m - alpha2)/(1.0 + alpha2);
+        w *= r * ({n-1} - alpha1 - alpha2)/(1.0 + alpha2);
       }}
       ++c;
-      c1[{n - 1} - alpha1m][i2] = c1v;
-      ww *= s;
+      c1[alpha1][i2] = {n} * c1v;
+    }}
+  }}
+
+  // double c2[{q}][{q}] = {{0}};
+
+  for (int i1 = 0; i1 < {q}; ++i1)
+  {{
+    double s = 1.0 - rule1p[i1];
+    double r = rule1p[i1]/s;
+    double w = 1.0;
+    for (int i = 0; i < {n - 1}; ++i)
+      w *= s;
+    for (int alpha1 = 0; alpha1 < {n}; ++alpha1)
+    {{
+      for (int i2 = 0; i2 < {q}; ++i2)
+        c2[{q}*i1 + i2] += w * c1[alpha1][i2];
+      w *= r * ({n - 1} - alpha1) / (1.0 + alpha1);
+    }}
+  }}
+}}
+
+void evaluate_grady_tri(double *c0, double *c2)
+{{
+  // Input: c0 ({(n+1)*(n+2)//2}) - dofs
+  // Output: c2 ({q*q}) - values at quadrature points
+  double rule1p[{q}] = {{{', '.join([str(p) for p in rule1[0]])}}};
+  double rule0p[{q}] = {{{', '.join([str(p) for p in rule0[0]])}}};
+
+  double c1[{n}][{q}] = {{}};
+
+  for (int i2 = 0; i2 < {q}; ++i2)
+  {{
+    double s = 1.0 - rule0p[i2];
+    double r = rule0p[i2] / s;
+    int c = 0;
+    int dc = {n + 1};
+    for (int alpha1 = 0; alpha1 < {n}; ++alpha1)
+    {{
+      double w = 1.0;
+      for (int j = 0; j < {n-1} - alpha1; ++j)
+        w *= s;
+      double c1v = 0.0;
+      for (int alpha2 = 0; alpha2 < {n} - alpha1; ++alpha2)
+      {{
+        c1v += w * (c0[c+dc] - c0[c]);
+        ++c;
+        w *= r * ({n-1} - alpha1 - alpha2)/(1.0 + alpha2);
+      }}
+      c1[alpha1][i2] = {n} * c1v;
+      ++c;
+      --dc;
     }}
   }}
 
@@ -317,40 +369,20 @@ void moment_tet(double *f0, double *f3)
     return ccode
 
 
-def cffi_eval_tri(n, q):
+def cffi_compile_tri(n, q):
     code = codegen_tri(n, q)
     print(code)
     ffi = FFI()
     ffi.set_source("_cffi_bernstein", code)
     ffi.cdef("void evaluate_tri(double *c0, double *c2);")
     ffi.cdef("void evaluate_gradx_tri(double *c0, double *c2);")
+    ffi.cdef("void evaluate_grady_tri(double *c0, double *c2);")
     ffi.cdef("void moment_tri(double *f0, double *f2);")
     ffi.compile(verbose=False)
     from _cffi_bernstein import ffi, lib
 
-    # Input basis function
-    c0 = np.ones((n + 1)*(n + 2)//2, dtype=np.float64)
-    print('B[c0] = ', c0)
 
-    # Interpolate at quadrature points
-    c2 = np.zeros(q * q, dtype=np.float64)
-    lib.evaluate_tri(ffi.cast("double *", c0.ctypes.data),
-                     ffi.cast("double *", c2.ctypes.data))
-    print('q = ', c2)
-
-    c2 = np.zeros(q * q, dtype=np.float64)
-    lib.evaluate_gradx_tri(ffi.cast("double *", c0.ctypes.data),
-                           ffi.cast("double *", c2.ctypes.data))
-    print('grad q = ', c2)
-
-    # Compute moment back into basis
-    f2 = np.zeros_like(c0)
-    lib.moment_tri(ffi.cast("double *", c2.ctypes.data),
-                   ffi.cast("double *", f2.ctypes.data))
-    print('B[f2] = ', f2, sum(f2))
-
-
-def cffi_eval_tet(n, q):
+def cffi_compile_tet(n, q):
     code = codegen_tet(n, q)
     print(code)
     ffi = FFI()
@@ -359,22 +391,3 @@ def cffi_eval_tet(n, q):
     ffi.cdef("void moment_tet(double *f0, double *f3);")
     ffi.compile(verbose=False)
     from _cffi_bernstein import ffi, lib
-
-    # Input basis function
-    c0 = np.ones((n + 1)*(n + 2)*(n + 3)//6, dtype=np.float64)
-    print('B[c0] = ', c0)
-
-    # Interpolate at quadrature points
-    c3 = np.zeros(q * q * q, dtype=np.float64)
-    lib.evaluate_tet(ffi.cast("double *", c0.ctypes.data),
-                     ffi.cast("double *", c3.ctypes.data))
-    print('q = ', c3)
-
-    # Compute moment back into basis
-    f3 = np.zeros_like(c0)
-    lib.moment_tet(ffi.cast("double *", c3.ctypes.data),
-                   ffi.cast("double *", f3.ctypes.data))
-    print('B[f3] = ', f3, sum(f3))
-
-
-cffi_eval_tri(5, 5)
