@@ -38,13 +38,14 @@ def evaluate_triangle(c0, q):
     return c2
 
 
-def evaluate_gradx_triangle(c0, q):
+def evaluate_grad_triangle(c0, q, direction='x'):
 
-    c0 = c0[1:, :-1]
-    print('new = \n', c0)
+    assert direction == 'x' or direction == 'y'
+    dx = 0 if direction == 'y' else 1
+    dy = 0 if direction == 'x' else 1
+
     assert c0.shape[0] == c0.shape[1]
-    n = c0.shape[0] - 1
-    c0 *= n
+    n = c0.shape[0] - 2
     rule0 = scipy.special.roots_jacobi(q, 0, 0)
     rule1 = scipy.special.roots_jacobi(q, 1, 0)
     rule0 = ((rule0[0] + 1) / 2, rule0[1] / 2)
@@ -59,7 +60,7 @@ def evaluate_gradx_triangle(c0, q):
         for alpha1 in range(n + 1):
             w = s**(n - alpha1)
             for alpha2 in range(n + 1 - alpha1):
-                c1[alpha1, i2] += w * c0[alpha1, alpha2]
+                c1[alpha1, i2] += w * (c0[alpha1 + dx, alpha2 + dy] - c0[alpha1, alpha2])
                 w *= r * (n - alpha1 - alpha2) / (1 + alpha2)
 
     # c2 = evalstep(c1, l=1, q)
