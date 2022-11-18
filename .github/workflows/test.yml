@@ -15,7 +15,7 @@ jobs:
         with:
           python-version: 3.9
       - uses: actions/checkout@v2
-      - run: pip install pytest symfem numpy scipy pytest-xdist flake8
+      - run: pip install pytest symfem numpy scipy pytest-xdist flake8 cffi
         name: Install requirements
       - run: flake8 .
         name: Flake8 checks

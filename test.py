@@ -5,6 +5,7 @@ import pytest
 import scipy
 
 import bernstein
+from bernstein_cffi import cffi_compile_tri
 
 x, y, z = sympy.symbols("x y z")
 
@@ -38,6 +39,58 @@ def test_evaluation_triangle():
             assert np.allclose(z0, z1)
             assert np.allclose(z0x, z1x)
             assert np.allclose(z0y, z1y)
+
+
+def test_cffi_triangle():
+    nd = 12
+    nq = 15
+    cffi_compile_tri(nd, nq)
+    from _cffi_bernstein import ffi, lib
+
+    def f(x, y): return x*x
+
+    # Compute basis from f
+    fdegree = 2*(nq-1) - nd
+    c0 = bernstein.compute_moments_triangle(nd, f, fdegree)
+    n = c0.shape[0]
+    b = np.zeros(n*(n+1)//2, dtype=np.float64)
+    c = 0
+    for i in range(n):
+        for j in range(n - i):
+            b[c] = c0[i, j]
+            c += 1
+
+    # Create quadrature points and evaluate f,
+    # and compute basis (cffi)
+    rule0 = scipy.special.roots_jacobi(nq, 0, 0)
+    rule1 = scipy.special.roots_jacobi(nq, 1, 0)
+    rule0 = ((rule0[0] + 1) / 2, rule0[1] / 2)
+    rule1 = ((rule1[0] + 1) / 2, rule1[1] / 4)
+    pts = np.array([(x, y*(1 - x)) for x in rule1[0] for y in rule0[0]])
+    f0 = np.array([f(x, y) for (x, y) in pts], dtype=np.float64)
+    f2 = np.zeros_like(b)
+    lib.moment_tri(ffi.cast("double *", f0.ctypes.data),
+                   ffi.cast("double *", f2.ctypes.data))
+
+    # Compare two results
+    assert np.allclose(f2, b)
+
+    z = np.zeros(nq * nq, dtype=np.float64)
+    z0 = np.zeros(nq * nq, dtype=np.float64)
+    z1 = np.zeros(nq * nq, dtype=np.float64)
+    lib.evaluate_tri(ffi.cast("double *", b.ctypes.data),
+                     ffi.cast("double *", z.ctypes.data))
+    lib.evaluate_gradx_tri(ffi.cast("double *", b.ctypes.data),
+                           ffi.cast("double *", z0.ctypes.data))
+    lib.evaluate_grady_tri(ffi.cast("double *", b.ctypes.data),
+                           ffi.cast("double *", z1.ctypes.data))
+
+    zb = bernstein.evaluate_triangle(c0, nq).flatten()
+    z0b = bernstein.evaluate_grad_triangle(c0, nq, 'x').flatten()
+    z1b = bernstein.evaluate_grad_triangle(c0, nq, 'y').flatten()
+    assert np.allclose(z, zb)
+    assert np.allclose(z1, z0b)
+    assert np.allclose(z0, z1b)
 
 
 @pytest.mark.parametrize("px", range(4))

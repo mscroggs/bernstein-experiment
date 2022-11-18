@@ -1,5 +1,4 @@
 import scipy.special
-import numpy as np
 from cffi import FFI
 
 
@@ -191,16 +190,16 @@ void moment_tri(double *f0, double *f2)
       double s = 1 - rule0p[i2];
       double r = rule0p[i2] / s;
       double w = rule0w[i2];
-      double w0 = 1.0;
       int c = 0;
-      for (int alpha1m = 0; alpha1m < {n + 1}; ++alpha1m)
+      for (int alpha1 = 0; alpha1 < {n + 1}; ++alpha1)
       {{
-        double ww = w * w0;
-        w0 *= s;
-        for (int alpha2 = 0; alpha2 < alpha1m + 1; ++alpha2)
+        double ww = w;
+        for (int j = 0; j < {n} - alpha1; ++j)
+          ww *= s;
+        for (int alpha2 = 0; alpha2 < {n + 1} - alpha1; ++alpha2)
         {{
-          f2[c++] += ww * f1[{n} - alpha1m][i2];
-          ww *= r * (alpha1m - alpha2) / (1 + alpha2);
+          f2[c++] += ww * f1[alpha1][i2];
+          ww *= r * ({n} - alpha1 - alpha2) / (1 + alpha2);
         }}
       }}
     }}
@@ -371,7 +370,6 @@ void moment_tet(double *f0, double *f3)
 
 def cffi_compile_tri(n, q):
     code = codegen_tri(n, q)
-    print(code)
     ffi = FFI()
     ffi.set_source("_cffi_bernstein", code)
     ffi.cdef("void evaluate_tri(double *c0, double *c2);")
@@ -379,15 +377,12 @@ def cffi_compile_tri(n, q):
     ffi.cdef("void evaluate_grady_tri(double *c0, double *c2);")
     ffi.cdef("void moment_tri(double *f0, double *f2);")
     ffi.compile(verbose=False)
-    from _cffi_bernstein import ffi, lib
 
 
 def cffi_compile_tet(n, q):
     code = codegen_tet(n, q)
-    print(code)
     ffi = FFI()
     ffi.set_source("_cffi_bernstein", code)
     ffi.cdef("void evaluate_tet(double *c0, double *c3);")
     ffi.cdef("void moment_tet(double *f0, double *f3);")
     ffi.compile(verbose=False)
-    from _cffi_bernstein import ffi, lib
