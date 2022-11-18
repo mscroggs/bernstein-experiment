@@ -40,41 +40,16 @@ def evaluate_triangle(c0, q):
 
 def evaluate_grad_triangle(c0, q, direction='x'):
 
-    assert direction == 'x' or direction == 'y'
-    dx = 0 if direction == 'y' else 1
-    dy = 0 if direction == 'x' else 1
-
     assert c0.shape[0] == c0.shape[1]
-    n = c0.shape[0] - 2
-    rule0 = scipy.special.roots_jacobi(q, 0, 0)
-    rule1 = scipy.special.roots_jacobi(q, 1, 0)
-    rule0 = ((rule0[0] + 1) / 2, rule0[1] / 2)
-    rule1 = ((rule1[0] + 1) / 2, rule1[1] / 4)
+    assert direction == 'x' or direction == 'y'
 
-    # d = 2
-    # c1 = evalstep(c0, l=2, q)
-    c1 = np.zeros((n + 1, q))
-    for i2, p in enumerate(rule0[0]):
-        s = 1 - p
-        r = p / s
-        for alpha1 in range(n + 1):
-            w = s**(n - alpha1)
-            for alpha2 in range(n + 1 - alpha1):
-                c1[alpha1, i2] += w * (c0[alpha1 + dx, alpha2 + dy] - c0[alpha1, alpha2])
-                w *= r * (n - alpha1 - alpha2) / (1 + alpha2)
+    if direction == 'x':
+        cd0 = c0[1:, :-1] - c0[:-1, :-1]
+    else:
+        cd0 = c0[:-1, 1:] - c0[:-1, :-1]
 
-    # c2 = evalstep(c1, l=1, q)
-    c2 = np.zeros((q, q))
-    for i1, p in enumerate(rule1[0]):
-        s = 1 - p
-        r = p / s
-        w = s**n
-        for alpha1 in range(n + 1):
-            for i2 in range(q):
-                c2[i1, i2] += w * c1[alpha1, i2]
-            w *= r * (n - alpha1) / (1 + alpha1)
-
-    return (n + 1)*c2
+    n = cd0.shape[0]
+    return n * evaluate_triangle(cd0, q)
 
 
 def evaluate_tetrahedron(c0, q):
@@ -127,6 +102,23 @@ def evaluate_tetrahedron(c0, q):
             w *= r * (n - alpha1) / (1 + alpha1)
 
     return c3
+
+
+def evaluate_grad_tetrahedron(c0, q, direction='x'):
+
+    assert c0.shape[0] == c0.shape[1]
+    assert c0.shape[0] == c0.shape[2]
+    assert direction == 'x' or direction == 'y' or direction == 'z'
+
+    if direction == 'x':
+        cd0 = c0[1:, :-1, :-1] - c0[:-1, :-1, :-1]
+    elif direction == 'y':
+        cd0 = c0[:-1, 1:, :-1] - c0[:-1, :-1, :-1]
+    else:
+        cd0 = c0[:-1, :-1, 1:] - c0[:-1, :-1, :-1]
+
+    n = cd0.shape[0]
+    return n * evaluate_tetrahedron(cd0, q)
 
 
 def compute_moments_tetrahedron(n, f, fdegree):

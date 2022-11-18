@@ -5,9 +5,13 @@ import pytest
 import scipy
 
 import bernstein
-from bernstein_cffi import cffi_compile_tri
+from bernstein_cffi import cffi_compile_all
 
 x, y, z = sympy.symbols("x y z")
+
+nd = 12
+nq = 12
+cffi_compile_all(nd, nq)
 
 
 def test_evaluation_triangle():
@@ -42,12 +46,9 @@ def test_evaluation_triangle():
 
 
 def test_cffi_triangle():
-    nd = 12
-    nq = 15
-    cffi_compile_tri(nd, nq)
     from _cffi_bernstein import ffi, lib
 
-    def f(x, y): return x*x
+    def f(x, y): return x*y
 
     # Compute basis from f
     fdegree = 2*(nq-1) - nd
@@ -91,6 +92,66 @@ def test_cffi_triangle():
     assert np.allclose(z, zb)
     assert np.allclose(z1, z0b)
     assert np.allclose(z0, z1b)
+
+
+def test_cffi_tet():
+    from _cffi_bernstein import ffi, lib
+
+    def f(x, y, z): return np.sqrt(x*y*z)
+
+    # Compute basis from f
+    fdegree = 2*(nq-1) - nd
+    c0 = bernstein.compute_moments_tetrahedron(nd, f, fdegree)
+    n = c0.shape[0]
+    b = np.zeros(n*(n+1)*(n+2)//6, dtype=np.float64)
+    c = 0
+    for i in range(n):
+        for j in range(n - i):
+            for k in range(n - i - j):
+                b[c] = c0[i, j, k]
+                c += 1
+
+    # Create quadrature points and evaluate f,
+    # and compute basis (cffi)
+    rule0 = scipy.special.roots_jacobi(nq, 0, 0)
+    rule1 = scipy.special.roots_jacobi(nq, 1, 0)
+    rule2 = scipy.special.roots_jacobi(nq, 2, 0)
+    rule0 = ((rule0[0] + 1) / 2, rule0[1] / 2)
+    rule1 = ((rule1[0] + 1) / 2, rule1[1] / 4)
+    rule2 = ((rule2[0] + 1) / 2, rule2[1] / 8)
+    pts = np.array([(x, y*(1 - x), z*(1 - x)*(1 - y))
+                    for x in rule2[0]
+                    for y in rule1[0]
+                    for z in rule0[0]])
+    f0 = np.array([f(x, y, z) for (x, y, z) in pts], dtype=np.float64)
+    f3 = np.zeros_like(b)
+    lib.moment_tet(ffi.cast("double *", f0.ctypes.data),
+                   ffi.cast("double *", f3.ctypes.data))
+
+    # Compare two results
+    assert np.allclose(f3, b)
+
+    z = np.zeros(nq * nq * nq, dtype=np.float64)
+    z0 = np.zeros(nq * nq * nq, dtype=np.float64)
+    z1 = np.zeros(nq * nq * nq, dtype=np.float64)
+    z2 = np.zeros(nq * nq * nq, dtype=np.float64)
+    lib.evaluate_tet(ffi.cast("double *", b.ctypes.data),
+                     ffi.cast("double *", z.ctypes.data))
+    lib.evaluate_gradx_tet(ffi.cast("double *", b.ctypes.data),
+                           ffi.cast("double *", z0.ctypes.data))
+    lib.evaluate_grady_tet(ffi.cast("double *", b.ctypes.data),
+                           ffi.cast("double *", z1.ctypes.data))
+    lib.evaluate_gradz_tet(ffi.cast("double *", b.ctypes.data),
+                           ffi.cast("double *", z2.ctypes.data))
+
+    zb = bernstein.evaluate_tetrahedron(c0, nq).flatten()
+    z0b = bernstein.evaluate_grad_tetrahedron(c0, nq, 'z').flatten()
+    z1b = bernstein.evaluate_grad_tetrahedron(c0, nq, 'y').flatten()
+    z2b = bernstein.evaluate_grad_tetrahedron(c0, nq, 'x').flatten()
+    assert np.allclose(z, zb)
+    assert np.allclose(z2, z2b)
+    assert np.allclose(z1, z1b)
+    assert np.allclose(z0, z0b)
 
 
 @pytest.mark.parametrize("px", range(4))
