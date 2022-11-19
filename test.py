@@ -77,21 +77,19 @@ def test_cffi_triangle():
     assert np.allclose(f2, b)
 
     z = np.zeros(nq * nq, dtype=np.float64)
-    z0 = np.zeros(nq * nq, dtype=np.float64)
-    z1 = np.zeros(nq * nq, dtype=np.float64)
+    z0 = np.zeros((2, nq * nq), dtype=np.float64)
     lib.evaluate_tri(ffi.cast("double *", b.ctypes.data),
                      ffi.cast("double *", z.ctypes.data))
-    lib.evaluate_gradx_tri(ffi.cast("double *", b.ctypes.data),
-                           ffi.cast("double *", z0.ctypes.data))
-    lib.evaluate_grady_tri(ffi.cast("double *", b.ctypes.data),
-                           ffi.cast("double *", z1.ctypes.data))
+    lib.evaluate_grad_tri(ffi.cast("double *", b.ctypes.data),
+                          ffi.cast("double *", z0.ctypes.data))
 
     zb = bernstein.evaluate_triangle(c0, nq).flatten()
-    z0b = bernstein.evaluate_grad_triangle(c0, nq, 'x').flatten()
-    z1b = bernstein.evaluate_grad_triangle(c0, nq, 'y').flatten()
+    # FIXME: x, y inverted?
+    z0b = bernstein.evaluate_grad_triangle(c0, nq, 'y').flatten()
+    z1b = bernstein.evaluate_grad_triangle(c0, nq, 'x').flatten()
     assert np.allclose(z, zb)
-    assert np.allclose(z1, z0b)
-    assert np.allclose(z0, z1b)
+    assert np.allclose(z0[0], z0b)
+    assert np.allclose(z0[1], z1b)
 
 
 def test_cffi_tet():
@@ -132,26 +130,21 @@ def test_cffi_tet():
     assert np.allclose(f3, b)
 
     z = np.zeros(nq * nq * nq, dtype=np.float64)
-    z0 = np.zeros(nq * nq * nq, dtype=np.float64)
-    z1 = np.zeros(nq * nq * nq, dtype=np.float64)
-    z2 = np.zeros(nq * nq * nq, dtype=np.float64)
+    z0 = np.zeros((3, nq * nq * nq), dtype=np.float64)
     lib.evaluate_tet(ffi.cast("double *", b.ctypes.data),
                      ffi.cast("double *", z.ctypes.data))
-    lib.evaluate_gradx_tet(ffi.cast("double *", b.ctypes.data),
-                           ffi.cast("double *", z0.ctypes.data))
-    lib.evaluate_grady_tet(ffi.cast("double *", b.ctypes.data),
-                           ffi.cast("double *", z1.ctypes.data))
-    lib.evaluate_gradz_tet(ffi.cast("double *", b.ctypes.data),
-                           ffi.cast("double *", z2.ctypes.data))
+    lib.evaluate_grad_tet(ffi.cast("double *", b.ctypes.data),
+                          ffi.cast("double *", z0.ctypes.data))
 
     zb = bernstein.evaluate_tetrahedron(c0, nq).flatten()
+    # FIXME - x,y,z inverted?
     z0b = bernstein.evaluate_grad_tetrahedron(c0, nq, 'z').flatten()
     z1b = bernstein.evaluate_grad_tetrahedron(c0, nq, 'y').flatten()
     z2b = bernstein.evaluate_grad_tetrahedron(c0, nq, 'x').flatten()
     assert np.allclose(z, zb)
-    assert np.allclose(z2, z2b)
-    assert np.allclose(z1, z1b)
-    assert np.allclose(z0, z0b)
+    assert np.allclose(z0[2], z2b)
+    assert np.allclose(z0[1], z1b)
+    assert np.allclose(z0[0], z0b)
 
 
 @pytest.mark.parametrize("px", range(4))
