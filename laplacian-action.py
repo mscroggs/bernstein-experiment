@@ -6,7 +6,7 @@ from sympy import symbols, diff
 
 np.set_printoptions(precision=2, suppress=True)
 
-n = 2
+n = 3
 nd = (n + 1)*(n+2)//2
 q = 5
 w = []
@@ -23,19 +23,33 @@ for u in range(n+1):
         lp = np.zeros_like(c0)
         lp[:-1, 1:] += gy
         lp[1:, :-1] += gx
-        lp[:-1, :-1] -= gx + gy
+        lp[:-1, :-1] -= (gx + gy)
         print(lp)
 
         for i in range(n +1):
             for j in range(n + 1 - i):
                 w += [lp[i, j]]
-print(np.array(w).reshape(nd, nd))
+w = np.array(w).reshape(nd, nd)
+
+print(w)
 print()
 
 x, y = symbols('x y')
-b0 = bernstein_polynomials(2, 2)
+b0 = bernstein_polynomials(n, 2)
 
-perm = [0,3,5,1,4,2]
+c = 0
+p = np.zeros((n+1, n+1), dtype=int)
+for i in range(n+1):
+    for j in range(n+1-i):
+        p[i, j] = c
+        c += 1
+print(p)
+perm = []
+for i in range(n+1):
+    for j in range(n+1-i):
+        perm += [p[j, i]]
+
+print(perm)
 b = [b0[i] for i in perm]
 print(b)
 
@@ -53,3 +67,4 @@ lap2 += np.array([[float(
 
 
 print(lap2)
+assert np.allclose(w, lap2)
