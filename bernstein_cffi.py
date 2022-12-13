@@ -112,6 +112,87 @@ void evaluate_grad_tri(double *c0, double *c2)
     }}
 }}
 
+void mass_action_tri(double *c0, double *f2)
+{{
+  // Input: c0 ({(n+1)*(n+2)//2}) - dofs
+  // Output f2 basis function values ({(n+1)*(n+2)//2})
+
+  double rule1w[{q}] = {{{', '.join([str(p) for p in rule1[1]])}}};
+  double rule0w[{q}] = {{{', '.join([str(p) for p in rule0[1]])}}};
+  double rule1p[{q}] = {{{', '.join([str(p) for p in rule1[0]])}}};
+  double rule0p[{q}] = {{{', '.join([str(p) for p in rule0[0]])}}};
+
+  double c1[{(n + 1)}][{q}] = {{}};
+
+  for (int i2 = 0; i2 < {q}; ++i2)
+  {{
+    double s = 1.0 - rule0p[i2];
+    double r = rule0p[i2] / s;
+    int c = 0;
+    for (int alpha1 = 0; alpha1 < {n + 1}; ++alpha1)
+    {{
+      double w = 1.0;
+      for (int j = 0; j < {n} - alpha1; ++j)
+        w *= s;
+      double c1v = 0.0;
+      for (int alpha2 = 0; alpha2 < {n + 1} - alpha1; ++alpha2)
+      {{
+        c1v += w * c0[c++];
+        w *= r * ({n} - alpha1 - alpha2)/(1.0 + alpha2);
+      }}
+      c1[alpha1][i2] = c1v;
+    }}
+  }}
+
+  double f1[{n+1}][{q}] = {{}};
+
+  for (int i1 = 0; i1 < {q}; ++i1)
+  {{
+    double c2[{q}] = {{0}};
+    double s = 1.0 - rule1p[i1];
+    double r = rule1p[i1] / s;
+    double w = 1.0;
+    for (int i = 0; i < {n}; ++i)
+      w *= s;
+    double ww = w * rule1w[i1];
+    for (int alpha1 = 0; alpha1 < {n + 1}; ++alpha1)
+    {{
+      for (int i2 = 0; i2 < {q}; ++i2)
+        c2[i2] += w * c1[alpha1][i2];
+      w *= r * ({n} - alpha1) / (1.0 + alpha1);
+    }}
+
+    for (int alpha1 = 0; alpha1 < {n+1}; ++alpha1)
+    {{
+        for (int i2 = 0; i2 < {q}; ++i2)
+            f1[alpha1][i2] += ww * c2[i2];
+        ww *= r * ({n} - alpha1) / (1 + alpha1);
+    }}
+  }}
+
+  // double f2[{(n + 2) * (n + 1) // 2}] = {{}};
+  for (int i2 = 0; i2 < {q}; ++i2)
+  {{
+    double s = 1.0 - rule0p[i2];
+    double r = rule0p[i2] / s;
+    double w = rule0w[i2];
+    int c = 0;
+    for (int alpha1 = 0; alpha1 < {n + 1}; ++alpha1)
+    {{
+      double ww = w;
+      for (int j = 0; j < {n} - alpha1; ++j)
+        ww *= s;
+      for (int alpha2 = 0; alpha2 < {n + 1} - alpha1; ++alpha2)
+      {{
+        f2[c++] += ww * f1[alpha1][i2];
+        ww *= r * ({n} - alpha1 - alpha2) / (1.0 + alpha2);
+      }}
+    }}
+  }}
+}}
+
+
+
 void moment_tri(double *f0, double *f2)
 {{
     // Input f0 at quadrature points ({q*q})
@@ -124,17 +205,17 @@ void moment_tri(double *f0, double *f2)
     double f1[{n+1}][{q}] = {{}};
     for (int i1 = 0; i1 < {q}; ++i1)
     {{
-        double s = 1.0 - rule1p[i1];
-        double r = rule1p[i1] / s;
-        double ww = rule1w[i1];
-        for (int j = 0; j < {n}; ++j)
-          ww *= s;
-        for (int alpha1 = 0; alpha1 < {n+1}; ++alpha1)
-        {{
-            for (int i2 = 0; i2 < {q}; ++i2)
-                f1[alpha1][i2] += ww * f0[i1*{q} + i2];
-            ww *= r * ({n} - alpha1) / (1 + alpha1);
-        }}
+      double s = 1.0 - rule1p[i1];
+      double r = rule1p[i1] / s;
+      double ww = rule1w[i1];
+      for (int j = 0; j < {n}; ++j)
+        ww *= s;
+      for (int alpha1 = 0; alpha1 < {n+1}; ++alpha1)
+      {{
+          for (int i2 = 0; i2 < {q}; ++i2)
+              f1[alpha1][i2] += ww * f0[i1*{q} + i2];
+          ww *= r * ({n} - alpha1) / (1 + alpha1);
+      }}
     }}
 
     // double f2[{(n + 2) * (n + 1) // 2}] = {{}};
@@ -152,12 +233,11 @@ void moment_tri(double *f0, double *f2)
         for (int alpha2 = 0; alpha2 < {n + 1} - alpha1; ++alpha2)
         {{
           f2[c++] += ww * f1[alpha1][i2];
-          ww *= r * ({n} - alpha1 - alpha2) / (1 + alpha2);
+          ww *= r * ({n} - alpha1 - alpha2) / (1.0 + alpha2);
         }}
       }}
     }}
 }}
-
 """
 
     return ccode
@@ -424,8 +504,11 @@ def cffi_compile_all(n, q):
     ffi.cdef("void evaluate_tri(double *c0, double *c2);")
     ffi.cdef("void evaluate_grad_tri(double *c0, double *c2);")
     ffi.cdef("void moment_tri(double *f0, double *f2);")
+    ffi.cdef("void mass_action_tri(double *c0, double *c2);")
 
     ffi.cdef("void evaluate_tet(double *c0, double *c3);")
     ffi.cdef("void evaluate_grad_tet(double *c0, double *c3);")
     ffi.cdef("void moment_tet(double *f0, double *f3);")
     ffi.compile(verbose=False)
+
+    return code

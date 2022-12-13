@@ -52,6 +52,7 @@ def test_cffi_triangle():
 
     # Compute basis from f
     fdegree = 2*(nq-1) - nd
+
     c0 = bernstein.compute_moments_triangle(nd, f, fdegree)
     n = c0.shape[0]
     b = np.zeros(n*(n+1)//2, dtype=np.float64)
@@ -213,6 +214,34 @@ def test_mass_matrix_triangle(px, py, n):
     print(mass2)
 
     assert np.allclose(mass1, mass2)
+
+
+
+@pytest.mark.parametrize("n", range(1, 5))
+def test_mass_action_triangle(n):
+
+    # For comparison
+    def f(x, y): return 1.0
+    mass1 = bernstein.compute_mass_matrix_triangle(n, f, n)
+
+    c = []
+    for i in range(n + 1):
+        for j in range(n - i + 1):
+            # Evaluate at quadrature points, setting each dof to 1.0 in turn
+            c0 = np.zeros((n + 1, n + 1))
+            c0[i, j] = 1.0
+            eval_tri = bernstein.evaluate_triangle(c0, 3*n)
+            # Get moment (quadrature pts -> dofs)
+            moment_tri = bernstein.compute_moments_triangle(n, eval_tri,
+                                                            5 * n - 2)
+            for u in range(n + 1):
+                for v in range(n + 1 - u):
+                    c += [moment_tri[u, v]]
+    nd = (n+1)*(n+2)//2
+    mass2 = np.array(c).reshape((nd, nd))
+
+    assert np.allclose(mass1, mass2)
+
 
 
 @pytest.mark.parametrize("px", range(2))
