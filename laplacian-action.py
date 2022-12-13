@@ -8,7 +8,7 @@ np.set_printoptions(precision=2, suppress=True)
 
 n = 3
 nd = (n + 1)*(n+2)//2
-q = 5
+q = 4
 w = []
 for u in range(n+1):
     for v in range(n + 1 - u):
@@ -37,6 +37,7 @@ print()
 x, y = symbols('x y')
 b0 = bernstein_polynomials(n, 2)
 
+# Permute order of basis functions (different in symfem)
 c = 0
 p = np.zeros((n+1, n+1), dtype=int)
 for i in range(n+1):

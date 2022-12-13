@@ -71,7 +71,7 @@ def test_cffi_triangle():
     pts = np.array([(x, y*(1 - x)) for x in rule1[0] for y in rule0[0]])
     f0 = np.array([f(x, y) for (x, y) in pts], dtype=np.float64)
     f2 = np.zeros_like(b)
-    lib.moment_tri(ffi.cast("double *", f0.ctypes.data),
+    lib.moment_tri_12(ffi.cast("double *", f0.ctypes.data),
                    ffi.cast("double *", f2.ctypes.data))
 
     # Compare two results
@@ -79,15 +79,15 @@ def test_cffi_triangle():
 
     z = np.zeros(nq * nq, dtype=np.float64)
     z0 = np.zeros((2, nq * nq), dtype=np.float64)
-    lib.evaluate_tri(ffi.cast("double *", b.ctypes.data),
+    lib.evaluate_tri_12(ffi.cast("double *", b.ctypes.data),
                      ffi.cast("double *", z.ctypes.data))
-    lib.evaluate_grad_tri(ffi.cast("double *", b.ctypes.data),
+    lib.evaluate_grad_tri_12(ffi.cast("double *", b.ctypes.data),
                           ffi.cast("double *", z0.ctypes.data))
 
     zb = bernstein.evaluate_triangle(c0, nq).flatten()
     # FIXME: x, y inverted?
-    z0b = bernstein.evaluate_grad_triangle(c0, nq, 'y').flatten()
-    z1b = bernstein.evaluate_grad_triangle(c0, nq, 'x').flatten()
+    z0b = bernstein.evaluate_grad_triangle(c0, nq, 'x').flatten()
+    z1b = bernstein.evaluate_grad_triangle(c0, nq, 'y').flatten()
     assert np.allclose(z, zb)
     assert np.allclose(z0[0], z0b)
     assert np.allclose(z0[1], z1b)
@@ -139,9 +139,9 @@ def test_cffi_tet():
 
     zb = bernstein.evaluate_tetrahedron(c0, nq).flatten()
     # FIXME - x,y,z inverted?
-    z0b = bernstein.evaluate_grad_tetrahedron(c0, nq, 'z').flatten()
+    z0b = bernstein.evaluate_grad_tetrahedron(c0, nq, 'x').flatten()
     z1b = bernstein.evaluate_grad_tetrahedron(c0, nq, 'y').flatten()
-    z2b = bernstein.evaluate_grad_tetrahedron(c0, nq, 'x').flatten()
+    z2b = bernstein.evaluate_grad_tetrahedron(c0, nq, 'z').flatten()
     assert np.allclose(z, zb)
     assert np.allclose(z0[2], z2b)
     assert np.allclose(z0[1], z1b)
