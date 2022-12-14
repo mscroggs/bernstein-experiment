@@ -155,6 +155,7 @@ void stiff_action_tri_{n}(double *c0, double *f3)
   double f1[2][{n}][{q}] = {{}};
 
   for (int dim = 0; dim < 2; ++dim)
+  {{
     for (int i1 = 0; i1 < {q}; ++i1)
     {{
       double c2[{q}] = {{0}};
@@ -178,31 +179,32 @@ void stiff_action_tri_{n}(double *c0, double *f3)
         ww *= r * ({n - 1} - alpha1) / (1 + alpha1);
       }}
     }}
+  }}
 
-    for (int i2 = 0; i2 < {q}; ++i2)
+  for (int i2 = 0; i2 < {q}; ++i2)
+  {{
+    double s = 1.0 - rule0p[i2];
+    double r = rule0p[i2] / s;
+    double w = rule0w[i2];
+    int c = {n + 1};
+    int d = 0;
+    for (int alpha1 = 0; alpha1 < {n}; ++alpha1)
     {{
-      double s = 1.0 - rule0p[i2];
-      double r = rule0p[i2] / s;
-      double w = rule0w[i2];
-      int c = {n + 1};
-      int d = 0;
-      for (int alpha1 = 0; alpha1 < {n}; ++alpha1)
+      double ww = {n} * w;
+      for (int j = 0; j < {n - 1} - alpha1; ++j)
+        ww *= s;
+      for (int alpha2 = 0; alpha2 < {n} - alpha1; ++alpha2)
       {{
-        double ww = {n} * w;
-        for (int j = 0; j < {n - 1} - alpha1; ++j)
-          ww *= s;
-        for (int alpha2 = 0; alpha2 < {n} - alpha1; ++alpha2)
-        {{
-          f3[c] += ww * f1[0][alpha1][i2];
-          f3[d] -= ww * (f1[1][alpha1][i2] + f1[0][alpha1][i2]);
-          f3[d + 1] += ww * f1[1][alpha1][i2];
-          ++c;
-          ++d;
-          ww *= r * ({n - 1} - alpha1 - alpha2) / (1.0 + alpha2);
-        }}
+        f3[c] += ww * f1[0][alpha1][i2];
+        f3[d] -= ww * (f1[1][alpha1][i2] + f1[0][alpha1][i2]);
+        f3[d + 1] += ww * f1[1][alpha1][i2];
+        ++c;
         ++d;
+        ww *= r * ({n - 1} - alpha1 - alpha2) / (1.0 + alpha2);
       }}
+      ++d;
     }}
+  }}
 
 }}
 
