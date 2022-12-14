@@ -205,7 +205,6 @@ def compute_moments_triangle(n, f, fdegree):
       A two-dimensional array containing the Bernstein moments.
     """
 
-
     if callable(f):
         q = (fdegree + n)//2 + 1
         rule0 = scipy.special.roots_jacobi(q, 0, 0)
@@ -224,7 +223,6 @@ def compute_moments_triangle(n, f, fdegree):
         rule1 = ((rule1[0] + 1) / 2, rule1[1] / 4)
 
     assert len(rule0[0] == q)
-
 
     f1 = np.zeros((n+1, q))
     for i1, (p, w) in enumerate(zip(*rule1)):

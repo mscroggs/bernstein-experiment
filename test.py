@@ -72,7 +72,7 @@ def test_cffi_triangle():
     f0 = np.array([f(x, y) for (x, y) in pts], dtype=np.float64)
     f2 = np.zeros_like(b)
     lib.moment_tri_12(ffi.cast("double *", f0.ctypes.data),
-                   ffi.cast("double *", f2.ctypes.data))
+                      ffi.cast("double *", f2.ctypes.data))
 
     # Compare two results
     assert np.allclose(f2, b)
@@ -80,9 +80,9 @@ def test_cffi_triangle():
     z = np.zeros(nq * nq, dtype=np.float64)
     z0 = np.zeros((2, nq * nq), dtype=np.float64)
     lib.evaluate_tri_12(ffi.cast("double *", b.ctypes.data),
-                     ffi.cast("double *", z.ctypes.data))
+                        ffi.cast("double *", z.ctypes.data))
     lib.evaluate_grad_tri_12(ffi.cast("double *", b.ctypes.data),
-                          ffi.cast("double *", z0.ctypes.data))
+                             ffi.cast("double *", z0.ctypes.data))
 
     zb = bernstein.evaluate_triangle(c0, nq).flatten()
     # FIXME: x, y inverted?
@@ -216,7 +216,6 @@ def test_mass_matrix_triangle(px, py, n):
     assert np.allclose(mass1, mass2)
 
 
-
 @pytest.mark.parametrize("n", range(1, 5))
 def test_mass_action_triangle(n):
 
@@ -241,7 +240,6 @@ def test_mass_action_triangle(n):
     mass2 = np.array(c).reshape((nd, nd))
 
     assert np.allclose(mass1, mass2)
-
 
 
 @pytest.mark.parametrize("px", range(2))

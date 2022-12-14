@@ -1,15 +1,13 @@
 
 import numpy as np
 import bernstein_cffi
-from symfem.elements.bernstein import bernstein_polynomials
-from sympy import symbols, diff
 
 np.set_printoptions(precision=2, suppress=True, linewidth=210)
 
 nq = 12
 code = bernstein_cffi.cffi_compile_all(8, nq)
 
-from _cffi_bernstein import ffi, lib
+from _cffi_bernstein import ffi, lib # noqa
 
 eval_grad = [None,
              lib.evaluate_grad_tri_1,
@@ -26,9 +24,9 @@ moment = [None,
           lib.moment_tri_5]
 
 stiff = [None,
-          lib.stiff_action_tri_1,
-          lib.stiff_action_tri_2,
-          lib.stiff_action_tri_3,
+         lib.stiff_action_tri_1,
+         lib.stiff_action_tri_2,
+         lib.stiff_action_tri_3,
          lib.stiff_action_tri_4,
          lib.stiff_action_tri_5,
          ]
