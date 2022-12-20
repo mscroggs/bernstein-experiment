@@ -136,7 +136,11 @@ def compute_moments_tetrahedron(n, f, fdegree):
       A three-dimensional array containing the Bernstein moments.
     """
 
-    jdegree = (n + fdegree) // 2 + 1
+    if fdegree is None:
+        f0 = f
+        jdegree = f0.shape[0]
+    else:
+        jdegree = (n + fdegree) // 2 + 1
     rule0 = scipy.special.roots_jacobi(jdegree, 2, 0)
     rule1 = scipy.special.roots_jacobi(jdegree, 1, 0)
     rule2 = scipy.special.roots_jacobi(jdegree, 0, 0)
@@ -148,11 +152,12 @@ def compute_moments_tetrahedron(n, f, fdegree):
     assert len(rule2) == len(rule1)
     assert len(rule2) == len(rule0)
 
-    f0 = np.empty((q, q, q))
-    for i, x in enumerate(rule0[0]):
-        for j, y in enumerate(rule1[0]):
-            for k, z in enumerate(rule2[0]):
-                f0[i, j, k] = f(x, y*(1 - x), z*(1 - y)*(1 - x))
+    if callable(f):
+        f0 = np.empty((q, q, q))
+        for i, x in enumerate(rule0[0]):
+            for j, y in enumerate(rule1[0]):
+                for k, z in enumerate(rule2[0]):
+                    f0[i, j, k] = f(x, y*(1 - x), z*(1 - y)*(1 - x))
 
     f1 = np.zeros((n+1, q, q))
     for i0, (p, w) in enumerate(zip(*rule0)):

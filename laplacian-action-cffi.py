@@ -5,7 +5,8 @@ import bernstein_cffi
 np.set_printoptions(precision=2, suppress=True, linewidth=210)
 
 nq = 12
-code = bernstein_cffi.cffi_compile_all(8, nq)
+nt = 12
+code = bernstein_cffi.cffi_compile_all(nt, nq)
 
 from _cffi_bernstein import ffi, lib # noqa
 
@@ -76,6 +77,17 @@ for k in range(nd):
     resk = np.zeros(nd, dtype=np.float64)
     stiff[n](ffi.cast("double *", c0.ctypes.data),
              ffi.cast("double *", resk.ctypes.data))
-    print(resk)
+#    print(resk)
 
-print('res = \n', res)
+# print('res = \n', res)
+
+ndtet = (nt+3)*(nt+2)*(nt+1)//6
+print('tet = ', ndtet)
+for i in range(ndtet):
+    c0 = np.zeros(ndtet, dtype=np.float64)
+    c0[i] = 1.0
+    res = np.zeros(ndtet, dtype=np.float64)
+    tm = lib.stiff_action_tet(ffi.cast("double *", c0.ctypes.data),
+                              ffi.cast("double *", res.ctypes.data))
+
+    print(tm)
