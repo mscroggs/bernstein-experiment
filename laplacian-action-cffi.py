@@ -83,10 +83,12 @@ for k in range(nd):
 
 ndtet = (nt+3)*(nt+2)*(nt+1)//6
 print('tet = ', ndtet)
-coords = np.array([0.0, 0.0, 0.0,
-                   1.0, 0.0, 0.0,
-                   0.0, 1.0, 0.0,
-                   0.0, 0.0, 1.0], dtype=np.float64)
+
+h = np.sqrt(2)/2
+coords = np.array([h, -1.0, 0.0,
+                   h, 1.0, 0.0,
+                   -h, 0.0, -1.0,
+                   -h, 0.0, 1.0], dtype=np.float64)
 for i in range(ndtet):
     c0 = np.zeros(ndtet, dtype=np.float64)
     c0[i] = 1.0
