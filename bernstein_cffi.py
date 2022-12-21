@@ -518,12 +518,10 @@ void evaluate_grad_tet(double *c0, double *c3)
 
 }}
 
-int stiff_action_tet(double *c0, double *f3)
+void stiff_action_tet(double *c0, double *f3, double *coordinate_dofs)
 {{
   // Input: c0 ({(n)*(n+1)*(n+2)//6}) - dofs
   // Output: f3 ({(n)*(n+1)*(n+2)//6}) - dofs
-
-  clock_t time = clock();
 
   double rule2w[{q}] = {{{', '.join([str(p) for p in rule2[1]])}}};
   double rule1w[{q}] = {{{', '.join([str(p) for p in rule1[1]])}}};
@@ -534,6 +532,33 @@ int stiff_action_tet(double *c0, double *f3)
 
   double c1[3][{n}][{n}][{q}] = {{}};
   int dx[3] = {{1, 1, 1}};
+
+  double J[3][3];
+  // Subtract first point
+  for (int i = 0; i < 3; ++i)
+    for (int j = 0; j < 3; ++j)
+      J[i][j] = coordinate_dofs[(i+1)*3 + j] - coordinate_dofs[j];
+
+  // Cofactors of J
+  double C[3][3];
+  C[0][0] = J[1][1] * J[2][2] - J[1][2] * J[2][1];
+  C[1][0] = J[2][1] * J[0][2] - J[2][2] * J[0][1];
+  C[2][0] = J[0][1] * J[1][2] - J[0][2] * J[1][1];
+  C[0][1] = J[1][2] * J[2][0] - J[1][0] * J[2][2];
+  C[1][1] = J[2][2] * J[0][0] - J[2][0] * J[0][2];
+  C[2][1] = J[0][2] * J[1][0] - J[0][0] * J[1][2];
+  C[0][2] = J[1][0] * J[2][1] - J[1][1] * J[2][0];
+  C[1][2] = J[2][0] * J[0][1] - J[2][1] * J[0][0];
+  C[2][2] = J[0][0] * J[1][1] - J[0][1] * J[1][0];
+
+  double detJ = C[0][0] * J[0][0] + C[0][1] * J[0][1] + C[0][2] * J[0][2];
+
+  // (J^-1)^T.(J^-1) * detJ
+  double JtJ[3][3] = {{}};
+  for (int i = 0; i < 3; ++i)
+    for (int j = 0; j < 3; ++j)
+      for (int k = 0; k < 3; ++k)
+        JtJ[i][k] += C[i][j] * C[k][j] / detJ;
 
   for (int i2 = 0; i2 < {q}; ++i2)
   {{
@@ -565,7 +590,7 @@ int stiff_action_tet(double *c0, double *f3)
     }}
   }}
 
-  double c2[3][{n}][{q*q}] = {{}};
+  double c2[3][{n}][{q}][{q}] = {{}};
   for (int dim = 0; dim < 3; ++dim)
   {{
     for (int i1 = 0; i1 < {q}; ++i1)
@@ -580,16 +605,14 @@ int stiff_action_tet(double *c0, double *f3)
         for (int alpha2 = 0; alpha2 < {n} - alpha1; ++alpha2)
         {{
           for (int i2 = 0; i2 < {q}; ++i2)
-            c2[dim][alpha1][i1 * {q} + i2] += w * c1[dim][alpha1][alpha2][i2];
+            c2[dim][alpha1][i1][i2] += w * c1[dim][alpha1][alpha2][i2];
           w *= r * ({n - 1} - alpha1 - alpha2) / (1.0 + alpha2);
         }}
       }}
     }}
   }}
 
-  double f1[3][{n}][{q*q}] = {{}};
-  for (int dim = 0; dim < 3; ++dim)
-  {{
+  double f1[3][{n}][{q}][{q}] = {{}};
     for (int i0 = 0; i0 < {q}; ++i0)
     {{
       double s = 1.0 - rule2p[i0];
@@ -600,16 +623,26 @@ int stiff_action_tet(double *c0, double *f3)
       for (int j = 0; j < {n - 1}; ++j)
         w[j + 1] = w[j] * r * ({n - 1} - j) / (1.0 + j);
 
-      for (int i = 0; i < {q*q}; ++i)
-      {{
-        double c3i = 0;
-        for (int alpha1 = 0; alpha1 < {n}; ++alpha1)
-          c3i += w[alpha1] * c2[dim][alpha1][i];
-        for (int alpha1 = 0; alpha1 < {n}; ++alpha1)
-          f1[dim][alpha1][i] += w[alpha1] * rule2w[i0] * c3i;
-      }}
+      for (int i1 = 0; i1 < {q}; ++i1)
+        for (int i2 = 0; i2 < {q}; ++i2)
+        {{
+          double c3i[3] = {{0}};
+          for (int alpha1 = 0; alpha1 < {n}; ++alpha1)
+            for (int dim = 0; dim < 3; ++dim)
+              c3i[dim] += w[alpha1] * c2[dim][alpha1][i1][i2];
+
+          // Transform c3i[3] -> f3i[3]
+          double f3i[3] = {{}};
+          for (int i = 0; i < 3; ++i)
+            for (int j = 0; j < 3; ++j)
+              f3i[j] += JtJ[i][j] * c3i[i];
+
+          for (int alpha1 = 0; alpha1 < {n}; ++alpha1)
+            for (int dim = 0; dim < 3; ++dim)
+              f1[dim][alpha1][i1][i2] += w[alpha1] * rule2w[i0] * f3i[dim];
+        }}
     }}
-  }}
+
 
   memset(c1, 0, {3*n*n*q}*sizeof(double));
 
@@ -628,7 +661,7 @@ int stiff_action_tet(double *c0, double *f3)
         for (int alpha2 = 0; alpha2 < {n} - alpha1; ++alpha2)
         {{
           for (int i2 = 0; i2 < {q}; ++i2)
-            c1[dim][alpha1][alpha2][i2] += ww * f1[dim][alpha1][i1*{q} + i2];
+            c1[dim][alpha1][alpha2][i2] += ww * f1[dim][alpha1][i1][i2];
           ww *= r * ({n - 1} - alpha1 - alpha2) / (1.0 + alpha2);
         }}
       }}
@@ -671,8 +704,6 @@ int stiff_action_tet(double *c0, double *f3)
       }}
     }}
 
-    clock_t dt = clock() - time;
-    return dt;
 }}
 
 void stiff_action_tet_new(double *c0, double *f3)
@@ -947,7 +978,7 @@ def cffi_compile_all(n, q):
     ffi.cdef("void evaluate_tet(double *c0, double *c3);")
     ffi.cdef("void evaluate_grad_tet(double *c0, double *c3);")
     ffi.cdef("void moment_tet(double *f0, double *f3);")
-    ffi.cdef("int stiff_action_tet(double *f0, double *f3);")
+    ffi.cdef("void stiff_action_tet(double *f0, double *f3, double *coordinate_dofs);")
     ffi.compile(verbose=False)
 
     return code
