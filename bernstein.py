@@ -301,7 +301,6 @@ def compute_moments_triangle(n, f, fdegree):
             for alpha1 in range(n + 1):
                 f1[alpha1, i2] += ww * f0[i1, i2]
                 ww *= r * (n - alpha1) / (1 + alpha1)
-
     print('f1 = \n', f1)
 
     f2 = np.zeros((n + 1, n + 1))
@@ -313,6 +312,7 @@ def compute_moments_triangle(n, f, fdegree):
             for alpha2 in range(n + 1 - alpha1):
                 f2[alpha1, alpha2] += ww * f1[alpha1, i2]
                 ww *= r * (n - alpha1 - alpha2) / (1 + alpha2)
+    print('f2 = ', f2)
 
     return f2
 
