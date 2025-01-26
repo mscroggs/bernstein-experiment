@@ -5,7 +5,7 @@ import bernstein_cffi
 np.set_printoptions(precision=2, suppress=True, linewidth=210)
 
 nq = 16
-nt = 3
+nt = 16
 code = bernstein_cffi.cffi_compile_all(nt, nq)
 
 from _cffi_bernstein import ffi, lib # noqa
@@ -96,4 +96,4 @@ for i in range(ndtet):
     lib.stiff_action_tet(ffi.cast("double *", c0.ctypes.data),
                          ffi.cast("double *", res.ctypes.data),
                          ffi.cast("double *", coords.ctypes.data))
-    print(res)
+#    print(res)

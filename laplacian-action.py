@@ -6,9 +6,10 @@ from sympy import symbols, diff
 
 np.set_printoptions(precision=2, suppress=True)
 
-n = 3
-nd = (n + 1)*(n+2)//2
+n = 2
 q = 4
+
+nd = (n + 1)*(n + 2)//2
 w = []
 for u in range(n+1):
     for v in range(n + 1 - u):
@@ -17,14 +18,15 @@ for u in range(n+1):
 
         gradx = bernstein.evaluate_grad_triangle(c0, q, direction='x')
         grady = bernstein.evaluate_grad_triangle(c0, q, direction='y')
-
         gx = n * bernstein.compute_moments_triangle(n - 1, gradx, None)
         gy = n * bernstein.compute_moments_triangle(n - 1, grady, None)
         lp = np.zeros_like(c0)
+        print ('gy=', gy)
+        print ('gx=', gx)
         lp[:-1, 1:] += gy
         lp[1:, :-1] += gx
         lp[:-1, :-1] -= (gx + gy)
-        print(lp)
+        print('lp = ', lp)
 
         for i in range(n + 1):
             for j in range(n + 1 - i):
@@ -33,6 +35,7 @@ w = np.array(w).reshape(nd, nd)
 
 print(w)
 print()
+quit()
 
 x, y = symbols('x y')
 b0 = bernstein_polynomials(n, 2)

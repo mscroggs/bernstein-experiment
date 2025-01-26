@@ -523,6 +523,8 @@ void stiff_action_tet(double *c0, double *f3, double *coordinate_dofs)
   // Input: c0 ({(n)*(n+1)*(n+2)//6}) - dofs
   // Output: f3 ({(n)*(n+1)*(n+2)//6}) - dofs
 
+  clock_t time = clock();
+
   double rule2w[{q}] = {{{', '.join([str(p) for p in rule2[1]])}}};
   double rule1w[{q}] = {{{', '.join([str(p) for p in rule1[1]])}}};
   double rule0w[{q}] = {{{', '.join([str(p) for p in rule0[1]])}}};
@@ -560,6 +562,9 @@ void stiff_action_tet(double *c0, double *f3, double *coordinate_dofs)
       for (int k = 0; k < 3; ++k)
         JtJ[i][k] += C[i][j] * C[k][j] / detJ;
 
+  printf("t0 = %ld\\n", clock() - time);
+ time = clock();
+
   for (int i2 = 0; i2 < {q}; ++i2)
   {{
     double s = 1.0 - rule0p[i2];
@@ -590,6 +595,9 @@ void stiff_action_tet(double *c0, double *f3, double *coordinate_dofs)
     }}
   }}
 
+  printf("t1 = %ld\\n", clock() - time);
+ time = clock();
+
   double c2[3][{n}][{q}][{q}] = {{}};
   for (int dim = 0; dim < 3; ++dim)
   {{
@@ -611,6 +619,9 @@ void stiff_action_tet(double *c0, double *f3, double *coordinate_dofs)
       }}
     }}
   }}
+
+  printf("t2 = %ld\\n", clock() - time);
+ time = clock();
 
   double f1[3][{n}][{q}][{q}] = {{}};
     for (int i0 = 0; i0 < {q}; ++i0)
@@ -635,14 +646,16 @@ void stiff_action_tet(double *c0, double *f3, double *coordinate_dofs)
           double f3i[3] = {{}};
           for (int i = 0; i < 3; ++i)
             for (int j = 0; j < 3; ++j)
-              f3i[j] += JtJ[i][j] * c3i[i];
+              f3i[j] += JtJ[i][j] * c3i[i] * rule2w[i0];
 
           for (int alpha1 = 0; alpha1 < {n}; ++alpha1)
             for (int dim = 0; dim < 3; ++dim)
-              f1[dim][alpha1][i1][i2] += w[alpha1] * rule2w[i0] * f3i[dim];
+              f1[dim][alpha1][i1][i2] += w[alpha1] * f3i[dim];
         }}
     }}
 
+    printf("t3 = %ld\\n", clock() - time);
+    time = clock();
 
   memset(c1, 0, {3*n*n*q}*sizeof(double));
 

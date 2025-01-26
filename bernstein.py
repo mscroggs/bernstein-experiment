@@ -2,6 +2,62 @@ import numpy as np
 import scipy.special
 from scipy.special import comb
 
+# Evaluate dofs on qxq quadrature points
+def evaluate_quad(dofs, q):
+    qpts, qwts = scipy.special.roots_legendre(q)
+    qpts = (qpts + 1) / 2
+
+    nx = dofs.shape[0] - 1
+    ny = dofs.shape[1] - 1
+    f0 = np.zeros((q, ny + 1))
+    for iq, x in enumerate(qpts):
+        b = x**nx
+        r = (1 - x) / x
+        for i in range(nx + 1):
+            for j in range(ny + 1):
+                f0[iq, j] += b * dofs[i, j]
+            b *= r * (nx - i)/(i + 1)
+
+    qvals = np.zeros((q, q))
+    for iq, x in enumerate(qpts):
+        b = x**ny
+        r = (1 - x)/x
+        for j in range(ny + 1):
+            for i in range(q):
+                qvals[i, iq] += b * f0[i, j]
+            b *= r * (ny - j)/(j + 1)
+
+    return qvals
+
+
+def compute_moments_quad(qvals, nx, ny):
+    q = qvals.shape[0]
+    qpts, qwts = scipy.special.roots_legendre(q)
+    assert q == len(qpts)
+    qpts = (qpts + 1) / 2.0
+    qwts /= 2.0
+
+    f1 = np.zeros((nx + 1, q))
+    for i1 in range(q):
+        x = qpts[i1]
+        r = (1 - x)/x
+        for i2 in range(q):
+            w = x**nx
+            for alpha1 in range(nx + 1):
+                f1[alpha1, i2] += qwts[i1] * w * qvals[i1, i2]
+                w *= r * (nx - alpha1)/(1 + alpha1)
+
+    f2 = np.zeros((nx + 1, ny + 1))
+    for i2 in range(q):
+        x = qpts[i2]
+        r = (1 - x)/x
+        for alpha1 in range(nx + 1):
+            w = x**ny
+            for alpha2 in range(ny + 1):
+                f2[alpha1, alpha2] += qwts[i2] * w * f1[alpha1, i2]
+                w *= r * (ny - alpha2)/(1 + alpha2)
+    return f2
+
 
 def evaluate_triangle(c0, q):
 
@@ -29,11 +85,11 @@ def evaluate_triangle(c0, q):
     for i1, p in enumerate(rule1[0]):
         s = 1 - p
         r = p / s
-        w = s**n
-        for alpha1 in range(n + 1):
-            for i2 in range(q):
+        for i2 in range(q):
+            w = s**n
+            for alpha1 in range(n + 1):
                 c2[i1, i2] += w * c1[alpha1, i2]
-            w *= r * (n - alpha1) / (1 + alpha1)
+                w *= r * (n - alpha1) / (1 + alpha1)
 
     return c2
 
@@ -47,6 +103,8 @@ def evaluate_grad_triangle(c0, q, direction='x'):
         cd0 = c0[1:, :-1] - c0[:-1, :-1]
     else:
         cd0 = c0[:-1, 1:] - c0[:-1, :-1]
+
+    print('c0 = ', c0, direction, cd0)
 
     n = cd0.shape[0]
     return n * evaluate_triangle(cd0, q)
@@ -83,23 +141,23 @@ def evaluate_tetrahedron(c0, q):
         s = 1 - p
         r = p / s
         for alpha1 in range(n + 1):
-            w = s**(n - alpha1)
-            for alpha2 in range(n + 1 - alpha1):
-                for i2 in range(q):
+            for i2 in range(q):
+                w = s**(n - alpha1)
+                for alpha2 in range(n + 1 - alpha1):
                     c2[alpha1, i1, i2] += w * c1[alpha1, alpha2, i2]
-                w *= r * (n - alpha1 - alpha2) / (1 + alpha2)
+                    w *= r * (n - alpha1 - alpha2) / (1 + alpha2)
 
     # c3 = evalstep(c2, l=1, q)
     c3 = np.zeros((q, q, q))
     for i0, p in enumerate(rule2[0]):
         s = 1 - p
         r = p / s
-        w = s**n
-        for alpha1 in range(n + 1):
-            for i1 in range(q):
-                for i2 in range(q):
+        for i1 in range(q):
+            for i2 in range(q):
+                w = s**n
+                for alpha1 in range(n + 1):
                     c3[i0, i1, i2] += w * c2[alpha1, i1, i2]
-            w *= r * (n - alpha1) / (1 + alpha1)
+                    w *= r * (n - alpha1) / (1 + alpha1)
 
     return c3
 
@@ -163,23 +221,23 @@ def compute_moments_tetrahedron(n, f, fdegree):
     for i0, (p, w) in enumerate(zip(*rule0)):
         s = 1 - p
         r = p / s
-        ww = w * s ** n
-        for alpha1 in range(n + 1):
-            for i1 in range(q):
-                for i2 in range(q):
+        for i1 in range(q):
+            for i2 in range(q):
+                ww = w * s ** n
+                for alpha1 in range(n + 1):
                     f1[alpha1, i1, i2] += ww * f0[i0, i1, i2]
-            ww *= r * (n - alpha1) / (1 + alpha1)
+                    ww *= r * (n - alpha1) / (1 + alpha1)
 
     f2 = np.zeros((n + 1, n + 1, q))
     for i1, (p, w) in enumerate(zip(*rule1)):
         s = 1 - p
         r = p / s
         for alpha1 in range(n + 1):
-            ww = w * s ** (n - alpha1)
-            for alpha2 in range(n + 1 - alpha1):
-                for i2 in range(q):
+            for i2 in range(q):
+                ww = w * s ** (n - alpha1)
+                for alpha2 in range(n + 1 - alpha1):
                     f2[alpha1, alpha2, i2] += ww * f1[alpha1, i1, i2]
-                ww *= r * (n - alpha1 - alpha2) / (1 + alpha2)
+                    ww *= r * (n - alpha1 - alpha2) / (1 + alpha2)
 
     f3 = np.zeros((n + 1, n + 1, n + 1))
     for i2, (p, w) in enumerate(zip(*rule2)):
@@ -229,15 +287,22 @@ def compute_moments_triangle(n, f, fdegree):
 
     assert len(rule0[0] == q)
 
+    print('f0=',f0)
+
+    print(rule1)
+
     f1 = np.zeros((n+1, q))
     for i1, (p, w) in enumerate(zip(*rule1)):
         s = 1 - p
         r = p / s
-        ww = w * s ** n
-        for alpha1 in range(n + 1):
-            for i2 in range(q):
+        for i2 in range(q):
+            ww = w * s ** n
+            print(ww)
+            for alpha1 in range(n + 1):
                 f1[alpha1, i2] += ww * f0[i1, i2]
-            ww *= r * (n - alpha1) / (1 + alpha1)
+                ww *= r * (n - alpha1) / (1 + alpha1)
+
+    print('f1 = \n', f1)
 
     f2 = np.zeros((n + 1, n + 1))
     for i2, (p, w) in enumerate(zip(*rule0)):
