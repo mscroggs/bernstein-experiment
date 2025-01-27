@@ -32,23 +32,8 @@ print()
 x, y = symbols('x y')
 bx = bernstein_polynomials(n, 1)
 by = [b.subs(x, y) for b in bernstein_polynomials(n, 1)]
-b0 = [b * c for b in bx for c in by]
+b = [b * c for b in by for c in bx]
 
-# Permute order of basis functions (different in symfem)
-c = 0
-p = np.zeros((n+1, n+1), dtype=int)
-for i in range(n+1):
-    for j in range(n+1):
-        p[i, j] = c
-        c += 1
-print(p)
-perm = []
-for i in range(n+1):
-    for j in range(n+1):
-        perm += [p[j, i]]
-
-print(perm)
-b = [b0[i] for i in perm]
 print(b)
 
 mass = np.array([[float(
