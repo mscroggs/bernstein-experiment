@@ -14,17 +14,15 @@ def evaluate_quad(dofs, q):
         b = x**nx
         r = (1 - x) / x
         for i in range(nx + 1):
-            for j in range(ny + 1):
-                f0[iq, j] += b * dofs[i, j]
+            f0[iq, :] += b * dofs[i, :]
             b *= r * (nx - i)/(i + 1)
 
     qvals = np.zeros((q, q))
     for iq, x in enumerate(qpts):
         b = x**ny
-        r = (1 - x)/x
+        r = (1 - x) / x
         for j in range(ny + 1):
-            for i in range(q):
-                qvals[i, iq] += b * f0[i, j]
+            qvals[:, iq] += b * f0[:, j]
             b *= r * (ny - j)/(j + 1)
 
     return qvals
@@ -40,22 +38,21 @@ def compute_moments_quad(qvals, nx, ny):
     f1 = np.zeros((nx + 1, q))
     for i1 in range(q):
         x = qpts[i1]
-        r = (1 - x)/x
-        for i2 in range(q):
-            w = x**nx
-            for alpha1 in range(nx + 1):
-                f1[alpha1, i2] += qwts[i1] * w * qvals[i1, i2]
-                w *= r * (nx - alpha1)/(1 + alpha1)
+        r = (1 - x) / x
+        w = x**nx
+        for alpha1 in range(nx + 1):
+            f1[alpha1, :] += qwts[i1] * w * qvals[i1, :]
+            w *= r * (nx - alpha1)/(1 + alpha1)
 
     f2 = np.zeros((nx + 1, ny + 1))
     for i2 in range(q):
         x = qpts[i2]
-        r = (1 - x)/x
-        for alpha1 in range(nx + 1):
-            w = x**ny
-            for alpha2 in range(ny + 1):
-                f2[alpha1, alpha2] += qwts[i2] * w * f1[alpha1, i2]
-                w *= r * (ny - alpha2)/(1 + alpha2)
+        r = (1 - x) / x
+        w = x**ny
+        for alpha2 in range(ny + 1):
+            f2[:, alpha2] += qwts[i2] * w * f1[:, i2]
+            w *= r * (ny - alpha2)/(1 + alpha2)
+
     return f2
 
 
